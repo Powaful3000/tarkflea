@@ -197,9 +197,9 @@ def main():
     win32gui.MoveWindow(
         tarkHANDLE, tarkPos[0], tarkPos[1], tarkSize[0], tarkSize[1], False)
     win32gui.SetForegroundWindow(tarkHANDLE)
+    Now = None
     sys.stdout.flush()
     while(True):
-        Now = None
         ScriptEnabled = not win32api.GetKeyState(win32con.VK_CAPITAL)
         if ScriptEnabled:
             generateRandomDuration()
