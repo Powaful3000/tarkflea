@@ -63,9 +63,9 @@ class ScreenshotMachine:
     def getLatest(self) -> connection.Connection:
         if (self.parentConn.poll()):
             self.lastImg = self.parentConn.recv()
-            self.lastImgTime = time()
+            self.lastImgTime = time.time()
             return self.lastImg
-        elif (self.lastImg is not None and (time() - self.lastImgTime < 1)):
+        elif (self.lastImg is not None and (time.time() - self.lastImgTime < 1)):
             return self.lastImg
         else:
             return None
@@ -217,7 +217,7 @@ def main():
         if ScriptEnabled:
             generateRandomDuration()
             clickF5()
-            for _ in range(5):
+            for _ in range(10):
                 if (locateImages(machine, ("./search/NotFound.png", "./search/clockImage.png", "./search/BOT.png"),
                                  ("fail", "offer", "BOT"), (0.8, 0.95, 0.8), (clickFail, spamClickY, foundBot))):
                     break

@@ -50,7 +50,7 @@ class ScreenshotMachine:
     childConn: connection.Connection
     proc: mp.Process
     lastImg: PIL.Image = None
-    lastImgTime: float = 0
+    lastImgTime: float = None
 
     def __init__(self):
         self.parentConn, self.childConn = mp.Pipe()
@@ -63,9 +63,9 @@ class ScreenshotMachine:
     def getLatest(self) -> connection.Connection:
         if (self.parentConn.poll()):
             self.lastImg = self.parentConn.recv()
-            self.lastImgTime = time()
+            self.lastImgTime = time.time()
             return self.lastImg
-        elif (self.lastImg is not None and (time() - self.lastImgTime < 1)):
+        elif (self.lastImg is not None and (time.time() - self.lastImgTime < 1)):
             return self.lastImg
         else:
             return None
@@ -187,22 +187,20 @@ def locateImages(machine: ScreenshotMachine, file_loc: tuple, nickname: tuple, a
     countSurch += 1
     before = time()
     img = machine.getLatest()
-    if (img is not None):
-        after = time()
-        surchTime += (after-before)
-        for i in range(len(file_loc)):
-            rawPos = imagesearcharea(
-                file_loc[i], 0, 0, 1920, 1080, acc[i], img)
-            if (rawPos[0] != -1):
-                avg = printAvgScans()
-                print("I saw", nickname[i], " ", avg, end='\r')
-                if callback != None:
-                    callback[i]()
-                    return True
-            else:
-                avg = printAvgScans()
-                print("I saw", "None", " ", avg, end='\r')
-        return False
+    after = time()
+    surchTime += (after-before)
+    for i in range(len(file_loc)):
+        rawPos = imagesearcharea(file_loc[i], 0, 0, 1920, 1080, acc[i], img)
+        if (rawPos[0] != -1):
+            avg = printAvgScans()
+            print("I saw", nickname[i], " ", avg, end='\r')
+            if callback != None:
+                callback[i]()
+                return True
+        else:
+            avg = printAvgScans()
+            print("I saw", "None", " ", avg, end='\r')
+    return False
 
 
 def main():
@@ -217,7 +215,7 @@ def main():
         if ScriptEnabled:
             generateRandomDuration()
             clickF5()
-            for _ in range(5):
+            for _ in range(10):
                 if (locateImages(machine, ("./search/NotFound.png", "./search/clockImage.png", "./search/BOT.png"),
                                  ("fail", "offer", "BOT"), (0.8, 0.95, 0.8), (clickFail, spamClickY, foundBot))):
                     break

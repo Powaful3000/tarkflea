@@ -49,8 +49,6 @@ class ScreenshotMachine:
     parentConn: connection.Connection
     childConn: connection.Connection
     proc: mp.Process
-    lastImg: PIL.Image = None
-    lastImgTime: float = 0
 
     def __init__(self):
         self.parentConn, self.childConn = mp.Pipe()
@@ -62,21 +60,15 @@ class ScreenshotMachine:
 
     def getLatest(self) -> connection.Connection:
         if (self.parentConn.poll()):
-            self.lastImg = self.parentConn.recv()
-            self.lastImgTime = time()
-            return self.lastImg
-        elif (self.lastImg is not None and (time() - self.lastImgTime < 1)):
-            return self.lastImg
-        else:
-            return None
+            return self.parentConn.recv()
 
     def grabLoop(self, pipe: connection.Connection):
         tarkHANDLE = win32gui.FindWindow(None, "EscapeFromTarkov")
         while True:
-            img = self.fastScreenshot(tarkHANDLE, )  # tarkSize[0], tarkSize[1]
+            img = self.fastScreenshot(tarkHANDLE, tarkSize[0], tarkSize[1])
             pipe.send(img)
 
-    def fastScreenshot(_, hwnd, width=1024, height=768) -> PIL.Image:
+    def fastScreenshot(_, hwnd, width, height) -> PIL.Image:
         wDC = win32gui.GetWindowDC(hwnd)
         dcObj = win32ui.CreateDCFromHandle(wDC)
         cDC = dcObj.CreateCompatibleDC()
@@ -182,27 +174,24 @@ def foundBot():
     exit()
 
 
-def locateImages(machine: ScreenshotMachine, file_loc: tuple, nickname: tuple, acc: tuple, callback: tuple = None) -> bool:
+def locateImages(machine: ScreenshotMachine, file_loc: tuple, nickname: tuple, acc: tuple = (0.9), callback: tuple = None):
     global surchTime, countSurch
     countSurch += 1
     before = time()
     img = machine.getLatest()
-    if (img is not None):
-        after = time()
-        surchTime += (after-before)
-        for i in range(len(file_loc)):
-            rawPos = imagesearcharea(
-                file_loc[i], 0, 0, 1920, 1080, acc[i], img)
-            if (rawPos[0] != -1):
-                avg = printAvgScans()
-                print("I saw", nickname[i], " ", avg, end='\r')
-                if callback != None:
-                    callback[i]()
-                    return True
-            else:
-                avg = printAvgScans()
-                print("I saw", "None", " ", avg, end='\r')
-        return False
+    after = time()
+    surchTime += (after-before)
+    for i in range(len(file_loc)):
+        rawPos = imagesearcharea(file_loc[i], 0, 0, 1920, 1080, acc[i], img)
+        if (rawPos[0] != -1):
+            avg = printAvgScans()
+            print("I saw", nickname[i], " ", avg, end='\r')
+            if callback != None:
+                callback[i]()
+                return
+        else:
+            avg = printAvgScans()
+            print("I saw", "None", " ", avg, end='\r')
 
 
 def main():
@@ -217,10 +206,9 @@ def main():
         if ScriptEnabled:
             generateRandomDuration()
             clickF5()
-            for _ in range(5):
-                if (locateImages(machine, ("./search/NotFound.png", "./search/clockImage.png", "./search/BOT.png"),
-                                 ("fail", "offer", "BOT"), (0.8, 0.95, 0.8), (clickFail, spamClickY, foundBot))):
-                    break
+            for _ in range(10):
+                locateImages(machine, ("./search/clockImage.png", "./search/NotFound.png", "./search/BOT.png"),
+                             ("fail", "offer", "BOT"), (0.95, 0.8, 0.8), (clickFail, spamClickY, foundBot))
             sleep(LOOPSLEEPDUR)
         else:
             if Now is None:

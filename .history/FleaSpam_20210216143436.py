@@ -217,7 +217,7 @@ def main():
         if ScriptEnabled:
             generateRandomDuration()
             clickF5()
-            for _ in range(5):
+            for _ in range(10):
                 if (locateImages(machine, ("./search/NotFound.png", "./search/clockImage.png", "./search/BOT.png"),
                                  ("fail", "offer", "BOT"), (0.8, 0.95, 0.8), (clickFail, spamClickY, foundBot))):
                     break
