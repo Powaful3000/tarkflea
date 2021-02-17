@@ -209,7 +209,7 @@ def main():
     machine = ScreenshotMachine()
     win32gui.MoveWindow(
         tarkHANDLE, tarkPos[0], tarkPos[1], tarkSize[0], tarkSize[1], False)
-    win32gui.SetForegroundWindow(tarkHANDLE)
+    win32gui.SetForegroundWindow(tarkHAND1LE)
     Now = None
     sys.stdout.flush()
     while(True):
