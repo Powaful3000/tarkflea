@@ -23,7 +23,7 @@ posOffer = (946, 100)  # Client Coords
 posOK = (512, 398)  # Client Coords
 posBOT = (420, 300)  # Client Coords
 posF5 = (747, 65)
-tarkPos = (0, 0)  # doesnt really matter
+tarkPos = (10, 10)  # doesnt really matter
 ScriptEnabled = True
 sleepDurRange = [0.0001, 0.0005]
 sleepDur = 0.0001
@@ -36,7 +36,7 @@ startTime = time()
 lastF5 = startTime
 offerTotal = 0
 failTotal = 0
-lineReplace = False
+
 # includes size of borders and header
 tarkSize = (1024+gameBorderH, 768+gameBorderV)
 tarkHANDLE = tarkHANDLE = win32gui.FindWindow(None, "EscapeFromTarkov")
@@ -84,7 +84,7 @@ class ScreenshotMachine:
         dataBitMap.CreateCompatibleBitmap(dcObj, width, height)
         cDC.SelectObject(dataBitMap)
         cDC.BitBlt((0, 0), (width, height), dcObj, (0, 0), win32con.SRCCOPY)
-        #dataBitMap.SaveBitmapFile(cDC, 'screenshot.bmp')
+        dataBitMap.SaveBitmapFile(cDC, 'screenshot.bmp')
         bmpinfo = dataBitMap.GetInfo()
         bmpstr = dataBitMap.GetBitmapBits(True)
         im = PIL.Image.frombuffer(
@@ -195,15 +195,13 @@ def locateImages(machine: ScreenshotMachine, file_loc: tuple, nickname: tuple, a
                 file_loc[i], 0, 0, 1920, 1080, acc[i], img)
             if (rawPos[0] != -1):
                 avg = printAvgScans()
-                print("I saw", nickname[i], " ", avg,
-                      end=(('\n', '\r')[lineReplace]))
+                print("I saw", nickname[i], " ", avg, end='\r')
                 if callback != None:
                     callback[i]()
                     return True
             else:
                 avg = printAvgScans()
-                print("I saw", "None", " ", avg,
-                      end=(('\n', '\r')[lineReplace]))
+                print("I saw", "None", " ", avg, end='\r')
         return False
 
 
@@ -211,20 +209,19 @@ def main():
     machine = ScreenshotMachine()
     win32gui.MoveWindow(
         tarkHANDLE, tarkPos[0], tarkPos[1], tarkSize[0], tarkSize[1], False)
-    win32gui.SetForegroundWindow(tarkHANDLE)
+    win32gui.SetForegroundWindow(tarkHAND1LE)
     Now = None
     sys.stdout.flush()
-    while True:
+    while(True):
         ScriptEnabled = not win32api.GetKeyState(win32con.VK_CAPITAL)
         if ScriptEnabled:
             generateRandomDuration()
             clickF5()
-            preLoopTime = time()
             for _ in range(10):
                 if (locateImages(machine, ("./search/NotFound.png", "./search/clockImage.png", "./search/BOT.png"),
                                  ("fail", "offer", "BOT"), (0.8, 0.95, 0.8), (clickFail, spamClickY, foundBot))):
                     break
-            sleep(max(LOOPSLEEPDUR - (time() - preLoopTime), 0.01))
+            sleep(LOOPSLEEPDUR)
         else:
             if Now is None:
                 Now = time()

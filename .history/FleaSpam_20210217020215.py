@@ -84,7 +84,7 @@ class ScreenshotMachine:
         dataBitMap.CreateCompatibleBitmap(dcObj, width, height)
         cDC.SelectObject(dataBitMap)
         cDC.BitBlt((0, 0), (width, height), dcObj, (0, 0), win32con.SRCCOPY)
-        #dataBitMap.SaveBitmapFile(cDC, 'screenshot.bmp')
+        dataBitMap.SaveBitmapFile(cDC, 'screenshot.bmp')
         bmpinfo = dataBitMap.GetInfo()
         bmpstr = dataBitMap.GetBitmapBits(True)
         im = PIL.Image.frombuffer(

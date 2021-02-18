@@ -84,7 +84,7 @@ class ScreenshotMachine:
         dataBitMap.CreateCompatibleBitmap(dcObj, width, height)
         cDC.SelectObject(dataBitMap)
         cDC.BitBlt((0, 0), (width, height), dcObj, (0, 0), win32con.SRCCOPY)
-        #dataBitMap.SaveBitmapFile(cDC, 'screenshot.bmp')
+        dataBitMap.SaveBitmapFile(cDC, 'screenshot.bmp')
         bmpinfo = dataBitMap.GetInfo()
         bmpstr = dataBitMap.GetBitmapBits(True)
         im = PIL.Image.frombuffer(
@@ -214,7 +214,7 @@ def main():
     win32gui.SetForegroundWindow(tarkHANDLE)
     Now = None
     sys.stdout.flush()
-    while True:
+    while(True):
         ScriptEnabled = not win32api.GetKeyState(win32con.VK_CAPITAL)
         if ScriptEnabled:
             generateRandomDuration()
@@ -224,7 +224,11 @@ def main():
                 if (locateImages(machine, ("./search/NotFound.png", "./search/clockImage.png", "./search/BOT.png"),
                                  ("fail", "offer", "BOT"), (0.8, 0.95, 0.8), (clickFail, spamClickY, foundBot))):
                     break
-            sleep(max(LOOPSLEEPDUR - (time() - preLoopTime), 0.01))
+            now = time()
+            newSleepDur = LOOPSLEEPDUR - (now-preLoopTime)
+            if newSleepDur < 0.01:
+                newSleepDur = 0.01
+            sleep(LOOPSLEEPDUR - (now-preLoopTime))
         else:
             if Now is None:
                 Now = time()
