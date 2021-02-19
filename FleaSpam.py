@@ -4,12 +4,15 @@ import random
 import sys
 from multiprocessing import connection
 from time import sleep, time
-import PIL
 import win32api
 import win32con
 import win32gui
 import win32ui
-from python_imagesearch.imagesearch import imagesearcharea
+import numpy
+import cv2
+import mss
+from PIL import Image
+
 
 TURBO_MODE = True
 
@@ -48,7 +51,7 @@ class ScreenshotMachine:
     parentConn: connection.Connection
     childConn: connection.Connection
     proc: mp.Process
-    lastImg: PIL.Image = None
+    lastImg: Image = None
     lastImgTime: float = 0
 
     def __init__(self):
@@ -75,7 +78,7 @@ class ScreenshotMachine:
             img = self.fastScreenshot(tarkHANDLE, )  # tarkSize[0], tarkSize[1]
             pipe.send(img)
 
-    def fastScreenshot(_, hwnd, width=1024, height=768) -> PIL.Image:
+    def fastScreenshot(_, hwnd, width=1024, height=768) -> Image:
         wDC = win32gui.GetWindowDC(hwnd)
         dcObj = win32ui.CreateDCFromHandle(wDC)
         cDC = dcObj.CreateCompatibleDC()
@@ -86,7 +89,7 @@ class ScreenshotMachine:
         #dataBitMap.SaveBitmapFile(cDC, 'screenshot.bmp')
         bmpinfo = dataBitMap.GetInfo()
         bmpstr = dataBitMap.GetBitmapBits(True)
-        im = PIL.Image.frombuffer(
+        im = Image.frombuffer(
             'RGB',
             (bmpinfo['bmWidth'], bmpinfo['bmHeight']),
             bmpstr, 'raw', 'BGRX', 0, 1)
@@ -97,19 +100,33 @@ class ScreenshotMachine:
         return im
 
 
-if not TURBO_MODE:
-    config = CP.ConfigParser({'DEFAULT': 'failpause'})
-    config.read("settings.ini")
-    try:
-        FAILPAUSE = int(config["DEFAULT"]["FAILPAUSE"])
-        OFFERPAUSE = int(config["DEFAULT"]["OFFERPAUSE"])
-        LOOPSLEEPDUR = int(config["DEFAULT"]["LOOPSLEEPDUR"])
-    except:
-        pass
-else:
-    FAILPAUSE = 0
-    OFFERPAUSE = 0
-    LOOPSLEEPDUR = 1
+def region_grabber(region):
+    x1 = region[0]
+    y1 = region[1]
+    width = region[2] - x1
+    height = region[3] - y1
+
+    region = x1, y1, width, height
+    with mss.mss() as sct:
+        return sct.grab(region)
+
+
+def imagesearcharea(image, precision=0.8, im=None):
+    if im is None:
+        print("fuck")
+        return
+
+    img_rgb = numpy.array(im)
+    img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2GRAY)
+    template = cv2.imread(image, 0)
+    if template is None:
+        raise FileNotFoundError('Image file not found: {}'.format(image))
+
+    res = cv2.matchTemplate(img_gray, template, cv2.TM_CCOEFF_NORMED)
+    _, max_val, _, max_loc = cv2.minMaxLoc(res)
+    if max_val < precision:
+        return [-1, -1]
+    return max_loc
 
 
 def computeAvgOF() -> str:
@@ -172,6 +189,7 @@ def clickF5():
 
 
 def foundBot():
+    global config
     if not TURBO_MODE:
         choice = random.choice(list(config['DEFAULT']))
         config.set("DEFAULT", choice, str(
@@ -191,8 +209,8 @@ def locateImages(machine: ScreenshotMachine, file_loc: tuple, nickname: tuple, a
         surchTime += (after-before)
         for i in range(len(file_loc)):
             rawPos = imagesearcharea(
-                file_loc[i], 0, 0, 1920, 1080, acc[i], img)
-            if (rawPos[0] != -1):
+                file_loc[i], acc[i], img)
+            if (rawPos[0] != -1 and rawPos is not None):
                 avg = printAvgScans()
                 print("I saw", nickname[i], "\t", avg,
                       end=(('\n', '\r')[lineReplace]))
@@ -207,6 +225,21 @@ def locateImages(machine: ScreenshotMachine, file_loc: tuple, nickname: tuple, a
 
 
 def main():
+    global TURBO_MODE, FAILPAUSE, OFFERPAUSE, LOOPSLEEPDUR, config
+    if not TURBO_MODE:
+        config = CP.ConfigParser({'DEFAULT': 'failpause'})
+        config.read("settings.ini")
+        try:
+            FAILPAUSE = int(config["DEFAULT"]["FAILPAUSE"])
+            OFFERPAUSE = int(config["DEFAULT"]["OFFERPAUSE"])
+            LOOPSLEEPDUR = int(config["DEFAULT"]["LOOPSLEEPDUR"])
+        except:
+            pass
+    else:
+        FAILPAUSE = 0
+        OFFERPAUSE = 0
+        LOOPSLEEPDUR = 1
+
     machine = ScreenshotMachine()
     win32gui.MoveWindow(
         tarkHANDLE, tarkPos[0], tarkPos[1], tarkSize[0], tarkSize[1], False)
