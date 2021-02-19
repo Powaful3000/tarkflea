@@ -4,6 +4,7 @@ import random
 import sys
 from multiprocessing import connection
 from time import sleep, time
+
 import PIL
 import win32api
 import win32con
@@ -37,7 +38,7 @@ offerTotal = 0
 failTotal = 0
 lineReplace = False
 # includes size of borders and header
-tarkSize = (1024 + gameBorderH, 768 + gameBorderV)
+tarkSize = (1024+gameBorderH, 768+gameBorderV)
 tarkHANDLE = tarkHANDLE = win32gui.FindWindow(None, "EscapeFromTarkov")
 
 
@@ -138,7 +139,7 @@ def printAvgScans() -> str:
     global surchTime, countSurch, startTime
     avg = surchTime/countSurch
     elapsed = time() - startTime
-    return ("O:F " + computeAvgOF() + " Average time to search screen: " + f"{avg:.5f}" + " Elapsed: " + f"{elapsed:.3f}")
+    return ("Average O:F " + computeAvgOF() + " Average time to search screen: " + str(avg) + "  Elapsed: " + str(elapsed))
 
 
 def spamClickY():
@@ -194,7 +195,7 @@ def locateImages(machine: ScreenshotMachine, file_loc: tuple, nickname: tuple, a
                 file_loc[i], 0, 0, 1920, 1080, acc[i], img)
             if (rawPos[0] != -1):
                 avg = printAvgScans()
-                print("I saw", nickname[i], "\t", avg,
+                print("I saw", nickname[i], " ", avg,
                       end=(('\n', '\r')[lineReplace]))
                 if callback != None:
                     callback[i]()

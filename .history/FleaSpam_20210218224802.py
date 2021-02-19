@@ -138,7 +138,7 @@ def printAvgScans() -> str:
     global surchTime, countSurch, startTime
     avg = surchTime/countSurch
     elapsed = time() - startTime
-    return ("O:F " + computeAvgOF() + " Average time to search screen: " + f"{avg:.5f}" + " Elapsed: " + f"{elapsed:.3f}")
+    return ("Average O:F\t" + computeAvgOF() + "\tAverage time to search screen:\t" + str(avg) + "\tElapsed: " + f"{elapsed:.2f}")
 
 
 def spamClickY():

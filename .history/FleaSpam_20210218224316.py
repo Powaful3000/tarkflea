@@ -4,6 +4,7 @@ import random
 import sys
 from multiprocessing import connection
 from time import sleep, time
+import decimal
 import PIL
 import win32api
 import win32con
@@ -138,7 +139,7 @@ def printAvgScans() -> str:
     global surchTime, countSurch, startTime
     avg = surchTime/countSurch
     elapsed = time() - startTime
-    return ("O:F " + computeAvgOF() + " Average time to search screen: " + f"{avg:.5f}" + " Elapsed: " + f"{elapsed:.3f}")
+    return ("Average O:F\t" + computeAvgOF() + "\tAverage time to search screen:\t" + str(avg) + "\tElapsed:\t" + str(elapsed))
 
 
 def spamClickY():

@@ -4,6 +4,7 @@ import random
 import sys
 from multiprocessing import connection
 from time import sleep, time
+
 import PIL
 import win32api
 import win32con
@@ -14,10 +15,10 @@ from python_imagesearch.imagesearch import imagesearcharea
 TURBO_MODE = True
 
 # IMPORTANT (0 if only one monitor, I have a 21:9 2560x1080 monitor so I set to 2560.  Thank imagesearch for being trash.)
-leftMonitorsOffset: int = 2560
-DownMonitorsOffset: int = 0  # IMPORTANT (same shit as before)
-gameBorderH: int = 16
-gameBorderV: int = 39
+leftMonitorsOffset = 2560
+DownMonitorsOffset = 0  # IMPORTANT (same shit as before)
+gameBorderH = 16
+gameBorderV = 39
 posOffer = (946, 100)  # Client Coords
 posOK = (512, 398)  # Client Coords
 posBOT = (420, 300)  # Client Coords
@@ -138,7 +139,7 @@ def printAvgScans() -> str:
     global surchTime, countSurch, startTime
     avg = surchTime/countSurch
     elapsed = time() - startTime
-    return ("O:F " + computeAvgOF() + " Average time to search screen: " + f"{avg:.5f}" + " Elapsed: " + f"{elapsed:.3f}")
+    return ("Average O:F " + computeAvgOF() + " Average time to search screen: " + str(avg) + "  Elapsed: " + str(elapsed))
 
 
 def spamClickY():
@@ -194,7 +195,7 @@ def locateImages(machine: ScreenshotMachine, file_loc: tuple, nickname: tuple, a
                 file_loc[i], 0, 0, 1920, 1080, acc[i], img)
             if (rawPos[0] != -1):
                 avg = printAvgScans()
-                print("I saw", nickname[i], "\t", avg,
+                print("I saw", nickname[i], " ", avg,
                       end=(('\n', '\r')[lineReplace]))
                 if callback != None:
                     callback[i]()
