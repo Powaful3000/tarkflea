@@ -49,32 +49,34 @@ class ScreenshotMachine:
     gameBorderH: int = 16
     gameBorderV: int = 39
     tarkSize = (1024+gameBorderH, 768+gameBorderV)
-    parentConn: connection.Connection
-    childConn: connection.Connection
-    proc: mp.Process
+    __parentConn: connection.Connection
+    __childConn: connection.Connection
+    __proc: mp.Process
     lastImg: Image = None
 
     def __init__(self):
-        self.parentConn, self.childConn = mp.Pipe()
-        self.proc = mp.Process(target=self.grabLoop, args=(self.childConn,))
-        self.proc.start()
-        self.childConn.close()
+        self.__parentConn, self.__childConn = mp.Pipe()
+        self.__proc = mp.Process(
+            target=self.__grabLoop, args=(self.__childConn,))
+        self.__proc.start()
+        self.__childConn.close()
 
     def die(self):
-        self.proc.terminate()
+        self.__proc.terminate()
 
     def getLatest(self) -> connection.Connection:
-        if (self.parentConn.poll()):
-            self.lastImg = self.parentConn.recv()
+        if (self.__parentConn.poll()):
+            self.lastImg = self.__parentConn.recv()
         return self.lastImg
 
-    def grabLoop(self, pipe: connection.Connection):
+    def __grabLoop(self, pipe: connection.Connection):
         tarkHANDLE = win32gui.FindWindow(None, "EscapeFromTarkov")
         while True:
-            img = self.fastScreenshot(tarkHANDLE, )  # tarkSize[0], tarkSize[1]
+            # tarkSize[0], tarkSize[1]
+            img = self.__fastScreenshot(tarkHANDLE, )
             pipe.send(img)
 
-    def fastScreenshot(_, hwnd, width=1024, height=768) -> Image:
+    def __fastScreenshot(_, hwnd, width=1024, height=768) -> Image:
         wDC = win32gui.GetWindowDC(hwnd)
         dcObj = win32ui.CreateDCFromHandle(wDC)
         cDC = dcObj.CreateCompatibleDC()
@@ -94,17 +96,6 @@ class ScreenshotMachine:
         win32gui.ReleaseDC(hwnd, wDC)
         win32gui.DeleteObject(dataBitMap.GetHandle())
         return im
-
-
-def region_grabber(region):
-    x1 = region[0]
-    y1 = region[1]
-    width = region[2] - x1
-    height = region[3] - y1
-
-    region = x1, y1, width, height
-    with mss.mss() as sct:
-        return sct.grab(region)
 
 
 def imagesearcharea(image, precision=0.8, im=None):
