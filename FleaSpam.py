@@ -12,6 +12,7 @@ import numpy
 import cv2
 import mss
 from PIL import Image
+import datetime
 
 
 TURBO_MODE = True
@@ -52,12 +53,12 @@ class ScreenshotMachine:
     childConn: connection.Connection
     proc: mp.Process
     lastImg: Image = None
-    lastImgTime: float = 0
 
     def __init__(self):
         self.parentConn, self.childConn = mp.Pipe()
         self.proc = mp.Process(target=self.grabLoop, args=(self.childConn,))
         self.proc.start()
+        self.childConn.close()
 
     def die(self):
         self.proc.terminate()
@@ -65,12 +66,7 @@ class ScreenshotMachine:
     def getLatest(self) -> connection.Connection:
         if (self.parentConn.poll()):
             self.lastImg = self.parentConn.recv()
-            self.lastImgTime = time()
-            return self.lastImg
-        elif (self.lastImg is not None and (time() - self.lastImgTime < 1)):
-            return self.lastImg
-        else:
-            return None
+        return self.lastImg
 
     def grabLoop(self, pipe: connection.Connection):
         tarkHANDLE = win32gui.FindWindow(None, "EscapeFromTarkov")
@@ -86,7 +82,7 @@ class ScreenshotMachine:
         dataBitMap.CreateCompatibleBitmap(dcObj, width, height)
         cDC.SelectObject(dataBitMap)
         cDC.BitBlt((0, 0), (width, height), dcObj, (0, 0), win32con.SRCCOPY)
-        #dataBitMap.SaveBitmapFile(cDC, 'screenshot.bmp')
+        # dataBitMap.SaveBitmapFile(cDC, 'screenshot.bmp')
         bmpinfo = dataBitMap.GetInfo()
         bmpstr = dataBitMap.GetBitmapBits(True)
         im = Image.frombuffer(
@@ -155,7 +151,7 @@ def printAvgScans() -> str:
     global surchTime, countSurch, startTime
     avg = surchTime/countSurch
     elapsed = time() - startTime
-    return ("O:F " + computeAvgOF() + " Average time to search screen: " + f"{avg:.5f}" + " Elapsed: " + f"{elapsed:.3f}")
+    return ("O:F " + computeAvgOF() + " Average time to search screen: " + f"{avg:.5f}" + "s  " + f"{(1/avg):.1f}" + " FPS  " + " Elapsed: " + str(datetime.timedelta(seconds=elapsed)) + "s")
 
 
 def spamClickY():
@@ -254,7 +250,7 @@ def main():
             preLoopTime = time()
             for _ in range(10):
                 if (locateImages(machine, ("./search/NotFound.png", "./search/clockImage.png", "./search/BOT.png"),
-                                 ("fail", "offer", "BOT"), (0.8, 0.95, 0.8), (clickFail, spamClickY, foundBot))):
+                                 ("fail", "offer", "BOT"), (0.8, 0.85, 0.8), (clickFail, spamClickY, foundBot))):
                     break
             sleep(max(LOOPSLEEPDUR - (time() - preLoopTime), 0.01))
         else:
