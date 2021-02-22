@@ -46,7 +46,7 @@ tarkHANDLE = tarkHANDLE = win32gui.FindWindow(None, "EscapeFromTarkov")
 
 
 class ScreenshotMachine:
-    gameBorderH: int = 16pip
+    gameBorderH: int = 16
     gameBorderV: int = 39
     tarkSize = (1024+gameBorderH, 768+gameBorderV)
     __parentConn: connection.Connection
