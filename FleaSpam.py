@@ -12,41 +12,6 @@ import datetime
 import ScreenshotMachine as sm
 
 
-TURBO_MODE = True
-
-# IMPORTANT (0 if only one monitor, I have a 21:9 2560x1080 monitor so I set to 2560.  Thank imagesearch for being trash.)
-leftMonitorsOffset: int = 2560
-DownMonitorsOffset: int = 0  # IMPORTANT (same shit as before)
-gameBorderH: int = 16
-gameBorderV: int = 39
-posOffer = (946, 100)  # Client Coords
-posOK = (512, 398)  # Client Coords
-posBOT = (420, 300)  # Client Coords
-posF5 = (747, 65)
-tarkPos = (0, 0)  # doesnt really matter
-ScriptEnabled = True
-sleepDurRange = [0.0001, 0.0005]
-sleepDur = 0.0001
-countSurch = 0
-surchTime = 0
-FAILPAUSE = 30  # SECONDS
-OFFERPAUSE = 30
-LOOPSLEEPDUR = 1
-startTime = time()
-lastF5 = startTime
-offerTotal = 0
-failTotal = 0
-lineReplace = False
-numLoops = 2
-machine = sm.ScreenshotMachine()
-# includes size of borders and header
-tarkSize = (1024 + gameBorderH, 768 + gameBorderV)
-tarkHANDLE = tarkHANDLE = win32gui.FindWindow(None, "EscapeFromTarkov")
-bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=True)
-sift = cv2.SIFT_create()
-images = None
-
-
 def imagesearcharea(template, precision=0.8, im=None):
     if im is None:
         print("fuck")
@@ -144,16 +109,14 @@ def locateImages() -> bool:
         rawPos = imagesearcharea(
             i[0], i[2], img)
 
-        if (rawPos[0] != -1 and rawPos is not None):
+        if (rawPos is not None and rawPos[0] != -1):
             avg = printAvgScans()
-            print("I saw", i[1], "\t", avg,
-                  end=end)
+            print("I saw", i[1], "\t", avg, end=end)
             eval(i[3])
             return True
         else:
             avg = printAvgScans()
-            print("I saw", "None", " ", avg,
-                  end=end)
+            print("I saw", "None", " ", avg, end=end)
     return False
 
 
@@ -169,7 +132,42 @@ images = [[gen("./search/NotFound.png"),     "fail",     0.8,    "clickFail()"],
 
 
 def main():
-    global TURBO_MODE, FAILPAUSE, OFFERPAUSE, LOOPSLEEPDUR, config, numLoops
+    global TURBO_MODE, FAILPAUSE, OFFERPAUSE, LOOPSLEEPDUR, startTime, tarkHANDLE, bf, sift, images, config, numLoops, machine, MonitorsOffset, DownMonitorsOffset, posOffer, posBOT, posOK, posF5, leftMonitorsOffset, sleepDurRange, sleepDur, countSurch, surchTime, lastF5, offerTotal, failTotal, lineReplace
+
+    TURBO_MODE = True
+
+    # IMPORTANT (0 if only one monitor, I have a 21:9 2560x1080 monitor so I set to 2560.  Thank imagesearch for being trash.)
+    leftMonitorsOffset: int = 2560
+    DownMonitorsOffset: int = 0  # IMPORTANT (same shit as before)
+    gameBorderH: int = 16
+    gameBorderV: int = 39
+    posOffer = (946, 100)  # Client Coords
+    posOK = (512, 398)  # Client Coords
+    posBOT = (420, 300)  # Client Coords
+    posF5 = (747, 65)
+    tarkPos = (0, 0)  # doesnt really matter
+    ScriptEnabled = True
+    sleepDurRange = [0.0001, 0.0005]
+    sleepDur = 0.0001
+    countSurch = 0
+    surchTime = 0
+    FAILPAUSE = 30  # SECONDS
+    OFFERPAUSE = 30
+    LOOPSLEEPDUR = 1
+    startTime = time()
+    lastF5 = startTime
+    offerTotal = 0
+    failTotal = 0
+    lineReplace = False
+    numLoops = 2
+    # includes size of borders and header
+    tarkSize = (1024 + gameBorderH, 768 + gameBorderV)
+    tarkHANDLE = tarkHANDLE = win32gui.FindWindow(None, "EscapeFromTarkov")
+    bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=True)
+    sift = cv2.SIFT_create()
+    images = None
+
+    machine = sm.ScreenshotMachine()
     if not TURBO_MODE:
         config = CP.ConfigParser({'DEFAULT': 'failpause'})
         config.read("settings.ini")
