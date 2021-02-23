@@ -10,7 +10,7 @@ import win32gui
 import win32ui
 import numpy
 import cv2
-import mss
+import pywintypes
 from PIL import Image
 import datetime
 
@@ -228,8 +228,12 @@ def main():
         LOOPSLEEPDUR = 1
 
     machine = ScreenshotMachine()
-    win32gui.MoveWindow(
-        tarkHANDLE, tarkPos[0], tarkPos[1], tarkSize[0], tarkSize[1], False)
+    try:
+        win32gui.MoveWindow(
+            tarkHANDLE, tarkPos[0], tarkPos[1], tarkSize[0], tarkSize[1], False)
+    except pywintypes.error as e:
+        print("Can't find tarkov window.", e)
+        exit()
     win32gui.SetForegroundWindow(tarkHANDLE)
     Now = None
     sys.stdout.flush()
