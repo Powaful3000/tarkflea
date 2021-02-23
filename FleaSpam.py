@@ -248,7 +248,7 @@ def main():
                     break
             Now = time()
             timeDiff = Now - preLoopTime
-            numLoops += (abs(timeDiff), 1)[timeDiff <= LOOPSLEEPDUR]
+            numLoops += (-abs(timeDiff), 1)[timeDiff <= LOOPSLEEPDUR]
             sleep(max(LOOPSLEEPDUR - (Now - preLoopTime), 0.01))
         else:
             if Now is None:
