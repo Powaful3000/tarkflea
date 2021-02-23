@@ -55,9 +55,8 @@ class ScreenshotMachine:
     lastImg: Image = None
 
     def __init__(self):
-        self.parentConn, self.__childConn = mp.Pipe()
-        self.proc = mp.Process(
-            target=self.__grabLoop, args=(self.__childConn,))
+        self.parentConn, self.childConn = mp.Pipe()
+        self.proc = mp.Process(target=self.grabLoop, args=(self.childConn,))
         self.proc.start()
         self.childConn.close()
 
@@ -72,7 +71,6 @@ class ScreenshotMachine:
     def grabLoop(self, pipe: connection.Connection):
         tarkHANDLE = win32gui.FindWindow(None, "EscapeFromTarkov")
         while True:
-            # tarkSize[0], tarkSize[1]
             img = self.fastScreenshot(tarkHANDLE, )
             pipe.send(img)
 
@@ -84,7 +82,6 @@ class ScreenshotMachine:
         dataBitMap.CreateCompatibleBitmap(dcObj, width, height)
         cDC.SelectObject(dataBitMap)
         cDC.BitBlt((0, 0), (width, height), dcObj, (0, 0), win32con.SRCCOPY)
-        # dataBitMap.SaveBitmapFile(cDC, 'screenshot.bmp')
         bmpinfo = dataBitMap.GetInfo()
         bmpstr = dataBitMap.GetBitmapBits(True)
         im = Image.frombuffer(
