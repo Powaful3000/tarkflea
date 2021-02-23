@@ -13,7 +13,6 @@ import cv2
 import pywintypes
 from PIL import Image
 import datetime
-import math
 
 
 TURBO_MODE = True
@@ -242,14 +241,11 @@ def main():
             generateRandomDuration()
             clickF5()
             preLoopTime = time()
-            for _ in range(math.floor(numLoops)):
+            for _ in range(round(numLoops)):
                 if (locateImages(machine, ("./search/NotFound.png", "./search/clockImage.png", "./search/BOT.png"),
                                  ("fail", "offer", "BOT"), (0.8, 0.85, 0.8), (clickFail, spamClickY, foundBot))):
                     break
-            Now = time()
-            timeDiff = Now - preLoopTime
-            numLoops += (LOOPSLEEPDUR-timeDiff, 1)[timeDiff <= LOOPSLEEPDUR]
-            sleep(max(LOOPSLEEPDUR - (Now - preLoopTime), 0.01))
+            numLoops += time() - preLoopTime - LOOPSLEEPDUR
         else:
             if Now is None:
                 Now = time()
