@@ -11,6 +11,10 @@ import pywintypes
 import datetime
 import ScreenshotMachine as sm
 
+images = [["./search/NotFound.png",     "fail",     0.8,    "clickFail()"],
+          ["./search/clockImage.png",   "offer",    0.85,   "spamClickY()"],
+          ["./search/BOT.png",          "BOT",      0.8,    "foundBot()"]]
+
 
 TURBO_MODE = True
 
@@ -42,18 +46,18 @@ machine = sm.ScreenshotMachine()
 # includes size of borders and header
 tarkSize = (1024 + gameBorderH, 768 + gameBorderV)
 tarkHANDLE = tarkHANDLE = win32gui.FindWindow(None, "EscapeFromTarkov")
-bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=True)
-sift = cv2.SIFT_create()
-images = None
 
 
-def imagesearcharea(template, precision=0.8, im=None):
+def imagesearcharea(image, precision=0.8, im=None):
     if im is None:
         print("fuck")
         return
 
     img_rgb = numpy.array(im)
     img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2GRAY)
+    template = cv2.imread(image, 0)
+    if template is None:
+        raise FileNotFoundError('Image file not found: {}'.format(image))
 
     res = cv2.matchTemplate(img_gray, template, cv2.TM_CCOEFF_NORMED)
     _, max_val, _, max_loc = cv2.minMaxLoc(res)
@@ -140,10 +144,9 @@ def locateImages() -> bool:
     after = time()
     surchTime += (after-before)
     end = ('\n', '\r')[lineReplace]
-    for i in images:
+    for i in range(len(images)):
         rawPos = imagesearcharea(
             i[0], i[2], img)
-
         if (rawPos[0] != -1 and rawPos is not None):
             avg = printAvgScans()
             print("I saw", i[1], "\t", avg,
@@ -155,17 +158,6 @@ def locateImages() -> bool:
             print("I saw", "None", " ", avg,
                   end=end)
     return False
-
-
-def gen(img_loc):
-    gray = cv2.cvtColor(cv2.imread(img_loc), cv2.COLOR_BGR2GRAY)
-    keypoints, descriptors = sift.detectAndCompute(gray, None)
-    return (gray, keypoints, descriptors)
-
-
-images = [[gen("./search/NotFound.png"),     "fail",     0.8,    "clickFail()"],
-          [gen("./search/clockImage.png"),   "offer",    0.85,   "spamClickY()"],
-          [gen("./search/BOT.png"),          "BOT",      0.8,    "foundBot()"]]
 
 
 def main():
