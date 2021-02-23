@@ -184,6 +184,7 @@ def gen(img_loc):
 
 
 def main():
+    global TURBO_MODE, tarkPos, ScriptEnabled, tarkSize, FAILPAUSE, OFFERPAUSE, LOOPSLEEPDUR, startTime, tarkHANDLE, bf, sift, images, config, numLoops, machine, MonitorsOffset, DownMonitorsOffset, posOffer, posBOT, posOK, posF5, leftMonitorsOffset, sleepDurRange, sleepDur, countSurch, surchTime, lastF5, offerTotal, failTotal, lineReplace
     globals()
     try:
         win32gui.MoveWindow(
