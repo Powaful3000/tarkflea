@@ -137,10 +137,10 @@ def main():
     TURBO_MODE = True
 
     # IMPORTANT (0 if only one monitor, I have a 21:9 2560x1080 monitor so I set to 2560.  Thank imagesearch for being trash.)
-    leftMonitorsOffset: int = 2560
-    DownMonitorsOffset: int = 0  # IMPORTANT (same shit as before)
-    gameBorderH: int = 16
-    gameBorderV: int = 39
+    leftMonitorsOffset = 2560
+    DownMonitorsOffset = 0  # IMPORTANT (same shit as before)
+    gameBorderH = 16
+    gameBorderV = 39
     posOffer = (946, 100)  # Client Coords
     posOK = (512, 398)  # Client Coords
     posBOT = (420, 300)  # Client Coords
