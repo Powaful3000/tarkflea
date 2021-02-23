@@ -49,34 +49,34 @@ class ScreenshotMachine:
     gameBorderH: int = 16
     gameBorderV: int = 39
     tarkSize = (1024+gameBorderH, 768+gameBorderV)
-    __parentConn: connection.Connection
-    __childConn: connection.Connection
-    __proc: mp.Process
+    parentConn: connection.Connection
+    childConn: connection.Connection
+    proc: mp.Process
     lastImg: Image = None
 
     def __init__(self):
-        self.__parentConn, self.__childConn = mp.Pipe()
-        self.__proc = mp.Process(
+        self.parentConn, self.__childConn = mp.Pipe()
+        self.proc = mp.Process(
             target=self.__grabLoop, args=(self.__childConn,))
-        self.__proc.start()
-        self.__childConn.close()
+        self.proc.start()
+        self.childConn.close()
 
     def die(self):
-        self.__proc.terminate()
+        self.proc.terminate()
 
     def getLatest(self) -> connection.Connection:
-        if (self.__parentConn.poll()):
-            self.lastImg = self.__parentConn.recv()
+        if (self.parentConn.poll()):
+            self.lastImg = self.parentConn.recv()
         return self.lastImg
 
-    def __grabLoop(self, pipe: connection.Connection):
+    def grabLoop(self, pipe: connection.Connection):
         tarkHANDLE = win32gui.FindWindow(None, "EscapeFromTarkov")
         while True:
             # tarkSize[0], tarkSize[1]
-            img = self.__fastScreenshot(tarkHANDLE, )
+            img = self.fastScreenshot(tarkHANDLE, )
             pipe.send(img)
 
-    def __fastScreenshot(_, hwnd, width=1024, height=768) -> Image:
+    def fastScreenshot(_, hwnd, width=1024, height=768) -> Image:
         wDC = win32gui.GetWindowDC(hwnd)
         dcObj = win32ui.CreateDCFromHandle(wDC)
         cDC = dcObj.CreateCompatibleDC()
