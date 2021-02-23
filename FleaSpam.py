@@ -38,7 +38,6 @@ offerTotal = 0
 failTotal = 0
 lineReplace = False
 numLoops = 2
-machine = sm.ScreenshotMachine()
 # includes size of borders and header
 tarkSize = (1024 + gameBorderH, 768 + gameBorderV)
 tarkHANDLE = tarkHANDLE = win32gui.FindWindow(None, "EscapeFromTarkov")
@@ -169,7 +168,8 @@ images = [[gen("./search/NotFound.png"),     "fail",     0.8,    "clickFail()"],
 
 
 def main():
-    global TURBO_MODE, FAILPAUSE, OFFERPAUSE, LOOPSLEEPDUR, config, numLoops
+    global TURBO_MODE, FAILPAUSE, OFFERPAUSE, LOOPSLEEPDUR, config, numLoops, machine
+    machine = sm.ScreenshotMachine()
     if not TURBO_MODE:
         config = CP.ConfigParser({'DEFAULT': 'failpause'})
         config.read("settings.ini")
