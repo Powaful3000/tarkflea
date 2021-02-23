@@ -38,10 +38,6 @@ print(len(a), len(b))
 
 
 def imagesearcharea(image, precision=0.8, im=None):
-    if im is None:
-        print("fuck")
-        return
-
     img_rgb = np.array(im)
     img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2GRAY)
     template = cv2.imread(image, 0)
