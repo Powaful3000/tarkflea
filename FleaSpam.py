@@ -184,6 +184,7 @@ def gen(img_loc):
 
 
 def main():
+    globals()
     try:
         win32gui.MoveWindow(
             tarkHANDLE, tarkPos[0], tarkPos[1], tarkSize[0], tarkSize[1], False)
