@@ -13,6 +13,7 @@ import cv2
 import pywintypes
 from PIL import Image
 import datetime
+import math
 
 
 TURBO_MODE = True
@@ -40,6 +41,7 @@ lastF5 = startTime
 offerTotal = 0
 failTotal = 0
 lineReplace = False
+numLoops = 2
 # includes size of borders and header
 tarkSize = (1024 + gameBorderH, 768 + gameBorderV)
 tarkHANDLE = tarkHANDLE = win32gui.FindWindow(None, "EscapeFromTarkov")
@@ -209,7 +211,7 @@ def locateImages(machine: ScreenshotMachine, file_loc: tuple, nickname: tuple, a
 
 
 def main():
-    global TURBO_MODE, FAILPAUSE, OFFERPAUSE, LOOPSLEEPDUR, config
+    global TURBO_MODE, FAILPAUSE, OFFERPAUSE, LOOPSLEEPDUR, config, numLoops
     if not TURBO_MODE:
         config = CP.ConfigParser({'DEFAULT': 'failpause'})
         config.read("settings.ini")
@@ -240,11 +242,14 @@ def main():
             generateRandomDuration()
             clickF5()
             preLoopTime = time()
-            for _ in range(10):
+            for _ in range(math.floor(numLoops)):
                 if (locateImages(machine, ("./search/NotFound.png", "./search/clockImage.png", "./search/BOT.png"),
                                  ("fail", "offer", "BOT"), (0.8, 0.85, 0.8), (clickFail, spamClickY, foundBot))):
                     break
-            sleep(max(LOOPSLEEPDUR - (time() - preLoopTime), 0.01))
+            Now = time()
+            timeDiff = Now - preLoopTime
+            numLoops += (abs(timeDiff), 1)[timeDiff <= LOOPSLEEPDUR]
+            sleep(max(LOOPSLEEPDUR - (Now - preLoopTime), 0.01))
         else:
             if Now is None:
                 Now = time()
