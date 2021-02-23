@@ -12,6 +12,62 @@ import datetime
 import ScreenshotMachine as sm
 
 
+def globals():
+    global TURBO_MODE, tarkPos, ScriptEnabled, tarkSize, FAILPAUSE, OFFERPAUSE, LOOPSLEEPDUR, startTime, tarkHANDLE, bf, sift, images, config, numLoops, machine, MonitorsOffset, DownMonitorsOffset, posOffer, posBOT, posOK, posF5, leftMonitorsOffset, sleepDurRange, sleepDur, countSurch, surchTime, lastF5, offerTotal, failTotal, lineReplace
+
+    bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=True)
+    sift = cv2.SIFT_create()
+    images = [[gen("./search/NotFound.png"),     "fail",     0.8,    "clickFail()"],
+              [gen("./search/clockImage.png"),
+               "offer",    0.85,   "spamClickY()"],
+              [gen("./search/BOT.png"),          "BOT",      0.8,    "foundBot()"]]
+
+    machine = sm.ScreenshotMachine()
+    TURBO_MODE = True
+
+    # IMPORTANT (0 if only one monitor, I have a 21:9 2560x1080 monitor so I set to 2560.  Thank imagesearch for being trash.)
+    leftMonitorsOffset = 2560
+    DownMonitorsOffset = 0  # IMPORTANT (same shit as before)
+    gameBorderH = 16
+    gameBorderV = 39
+    posOffer = (946, 100)  # Client Coords
+    posOK = (512, 398)  # Client Coords
+    posBOT = (420, 300)  # Client Coords
+    posF5 = (747, 65)
+    tarkPos = (0, 0)  # doesnt really matter
+    ScriptEnabled = True
+    sleepDurRange = [0.0001, 0.0005]
+    sleepDur = 0.0001
+    countSurch = 0
+    surchTime = 0
+    FAILPAUSE = 30  # SECONDS
+    OFFERPAUSE = 30
+    LOOPSLEEPDUR = 1
+    startTime = time()
+    lastF5 = startTime
+    offerTotal = 0
+    failTotal = 0
+    lineReplace = False
+    numLoops = 2
+    # includes size of borders and header
+    tarkSize = (1024 + gameBorderH, 768 + gameBorderV)
+    tarkHANDLE = tarkHANDLE = win32gui.FindWindow(None, "EscapeFromTarkov")
+    if not TURBO_MODE:
+        config = CP.ConfigParser({'DEFAULT': 'failpause'})
+        config.read("settings.ini")
+        try:
+            a = config["DEFAULT"]
+            FAILPAUSE = int(a["FAILPAUSE"])
+            OFFERPAUSE = int(a["OFFERPAUSE"])
+            LOOPSLEEPDUR = int(a["LOOPSLEEPDUR"])
+        except:
+            pass
+    else:
+        FAILPAUSE = 0
+        OFFERPAUSE = 0
+        LOOPSLEEPDUR = 1
+
+
 def imagesearcharea(template, precision=0.8, im=None):
     if im is None:
         print("fuck")
@@ -121,68 +177,13 @@ def locateImages() -> bool:
 
 
 def gen(img_loc):
+    global sift
     gray = cv2.cvtColor(cv2.imread(img_loc), cv2.COLOR_BGR2GRAY)
     keypoints, descriptors = sift.detectAndCompute(gray, None)
     return (gray, keypoints, descriptors)
 
 
-images = [[gen("./search/NotFound.png"),     "fail",     0.8,    "clickFail()"],
-          [gen("./search/clockImage.png"),   "offer",    0.85,   "spamClickY()"],
-          [gen("./search/BOT.png"),          "BOT",      0.8,    "foundBot()"]]
-
-
 def main():
-    global TURBO_MODE, FAILPAUSE, OFFERPAUSE, LOOPSLEEPDUR, startTime, tarkHANDLE, bf, sift, images, config, numLoops, machine, MonitorsOffset, DownMonitorsOffset, posOffer, posBOT, posOK, posF5, leftMonitorsOffset, sleepDurRange, sleepDur, countSurch, surchTime, lastF5, offerTotal, failTotal, lineReplace
-
-    TURBO_MODE = True
-
-    # IMPORTANT (0 if only one monitor, I have a 21:9 2560x1080 monitor so I set to 2560.  Thank imagesearch for being trash.)
-    leftMonitorsOffset = 2560
-    DownMonitorsOffset = 0  # IMPORTANT (same shit as before)
-    gameBorderH = 16
-    gameBorderV = 39
-    posOffer = (946, 100)  # Client Coords
-    posOK = (512, 398)  # Client Coords
-    posBOT = (420, 300)  # Client Coords
-    posF5 = (747, 65)
-    tarkPos = (0, 0)  # doesnt really matter
-    ScriptEnabled = True
-    sleepDurRange = [0.0001, 0.0005]
-    sleepDur = 0.0001
-    countSurch = 0
-    surchTime = 0
-    FAILPAUSE = 30  # SECONDS
-    OFFERPAUSE = 30
-    LOOPSLEEPDUR = 1
-    startTime = time()
-    lastF5 = startTime
-    offerTotal = 0
-    failTotal = 0
-    lineReplace = False
-    numLoops = 2
-    # includes size of borders and header
-    tarkSize = (1024 + gameBorderH, 768 + gameBorderV)
-    tarkHANDLE = tarkHANDLE = win32gui.FindWindow(None, "EscapeFromTarkov")
-    bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=True)
-    sift = cv2.SIFT_create()
-    images = None
-
-    machine = sm.ScreenshotMachine()
-    if not TURBO_MODE:
-        config = CP.ConfigParser({'DEFAULT': 'failpause'})
-        config.read("settings.ini")
-        try:
-            a = config["DEFAULT"]
-            FAILPAUSE = int(a["FAILPAUSE"])
-            OFFERPAUSE = int(a["OFFERPAUSE"])
-            LOOPSLEEPDUR = int(a["LOOPSLEEPDUR"])
-        except:
-            pass
-    else:
-        FAILPAUSE = 0
-        OFFERPAUSE = 0
-        LOOPSLEEPDUR = 1
-
     try:
         win32gui.MoveWindow(
             tarkHANDLE, tarkPos[0], tarkPos[1], tarkSize[0], tarkSize[1], False)
