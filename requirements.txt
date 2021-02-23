@@ -1,4 +1,4 @@
 Pillow
-python-opencv
+opencv-python
 numpy
 pywin32
