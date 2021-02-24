@@ -1,18 +1,15 @@
 import configparser as CP
-import multiprocessing as mp
 import random
 import sys
-from multiprocessing import connection
 from time import sleep, time
 import win32api
 import win32con
 import win32gui
-import win32ui
 import numpy
 import cv2
 import pywintypes
-from PIL import Image
 import datetime
+<<<<<<< HEAD
 
 
 TURBO_MODE = True
@@ -97,15 +94,74 @@ class ScreenshotMachine:
 
 
 def imagesearcharea(image, precision=0.8, im=None):
+=======
+import ScreenshotMachine as sm
+
+
+def globals():
+    global TURBO_MODE, tarkPos, ScriptEnabled, tarkSize, FAILPAUSE, OFFERPAUSE, LOOPSLEEPDUR, startTime, tarkHANDLE, bf, sift, images, config, numLoops, machine, MonitorsOffset, DownMonitorsOffset, posOffer, posBOT, posOK, posF5, leftMonitorsOffset, sleepDurRange, sleepDur, countSurch, surchTime, lastF5, offerTotal, failTotal, lineReplace
+
+    bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=True)
+    sift = cv2.SIFT_create()
+    images = [[gen("./search/NotFound.png"),     "fail",     0.8,    "clickFail()"],
+              [gen("./search/clockImage.png"),
+               "offer",    0.85,   "spamClickY()"],
+              [gen("./search/BOT.png"),          "BOT",      0.8,    "foundBot()"]]
+
+    machine = sm.ScreenshotMachine()
+    TURBO_MODE = True
+
+    # IMPORTANT (0 if only one monitor, I have a 21:9 2560x1080 monitor so I set to 2560.  Thank imagesearch for being trash.)
+    leftMonitorsOffset = 2560
+    DownMonitorsOffset = 0  # IMPORTANT (same shit as before)
+    gameBorderH = 16
+    gameBorderV = 39
+    posOffer = (946, 100)  # Client Coords
+    posOK = (512, 398)  # Client Coords
+    posBOT = (420, 300)  # Client Coords
+    posF5 = (747, 65)
+    tarkPos = (0, 0)  # doesnt really matter
+    ScriptEnabled = True
+    sleepDurRange = [0.0001, 0.0005]
+    sleepDur = 0.0001
+    countSurch = 0
+    surchTime = 0
+    FAILPAUSE = 30  # SECONDS
+    OFFERPAUSE = 30
+    LOOPSLEEPDUR = 1
+    startTime = time()
+    lastF5 = startTime
+    offerTotal = 0
+    failTotal = 0
+    lineReplace = False
+    numLoops = 2
+    # includes size of borders and header
+    tarkSize = (1024 + gameBorderH, 768 + gameBorderV)
+    tarkHANDLE = tarkHANDLE = win32gui.FindWindow(None, "EscapeFromTarkov")
+    if not TURBO_MODE:
+        config = CP.ConfigParser({'DEFAULT': 'failpause'})
+        config.read("settings.ini")
+        try:
+            a = config["DEFAULT"]
+            FAILPAUSE = int(a["FAILPAUSE"])
+            OFFERPAUSE = int(a["OFFERPAUSE"])
+            LOOPSLEEPDUR = int(a["LOOPSLEEPDUR"])
+        except:
+            pass
+    else:
+        FAILPAUSE = 0
+        OFFERPAUSE = 0
+        LOOPSLEEPDUR = 1
+
+
+def imagesearcharea(template, precision=0.8, im=None):
+>>>>>>> f6cdc4b5f76edd437b093e5573d27fbabdb6ec7c
     if im is None:
         print("fuck")
         return
 
     img_rgb = numpy.array(im)
     img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2GRAY)
-    template = cv2.imread(image, 0)
-    if template is None:
-        raise FileNotFoundError('Image file not found: {}'.format(image))
 
     res = cv2.matchTemplate(img_gray, template, cv2.TM_CCOEFF_NORMED)
     _, max_val, _, max_loc = cv2.minMaxLoc(res)
@@ -184,48 +240,39 @@ def foundBot():
     exit()
 
 
-def locateImages(machine: ScreenshotMachine, file_loc: tuple, nickname: tuple, acc: tuple, callback: tuple = None) -> bool:
-    global surchTime, countSurch
+def locateImages() -> bool:
+    global surchTime, countSurch, machine
     countSurch += 1
     before = time()
     img = machine.getLatest()
-    if (img is not None):
-        after = time()
-        surchTime += (after-before)
-        for i in range(len(file_loc)):
-            rawPos = imagesearcharea(
-                file_loc[i], acc[i], img)
-            if (rawPos[0] != -1 and rawPos is not None):
-                avg = printAvgScans()
-                print("I saw", nickname[i], "\t", avg,
-                      end=(('\n', '\r')[lineReplace]))
-                if callback != None:
-                    callback[i]()
-                    return True
-            else:
-                avg = printAvgScans()
-                print("I saw", "None", " ", avg,
-                      end=(('\n', '\r')[lineReplace]))
-        return False
+    after = time()
+    surchTime += (after-before)
+    end = ('\n', '\r')[lineReplace]
+    for i in images:
+        rawPos = imagesearcharea(
+            i[0], i[2], img)
+
+        if (rawPos is not None and rawPos[0] != -1):
+            avg = printAvgScans()
+            print("I saw", i[1], "\t", avg, end=end)
+            eval(i[3])
+            return True
+        else:
+            avg = printAvgScans()
+            print("I saw", "None", " ", avg, end=end)
+    return False
+
+
+def gen(img_loc):
+    global sift
+    gray = cv2.cvtColor(cv2.imread(img_loc), cv2.COLOR_BGR2GRAY)
+    keypoints, descriptors = sift.detectAndCompute(gray, None)
+    return (gray, keypoints, descriptors)
 
 
 def main():
-    global TURBO_MODE, FAILPAUSE, OFFERPAUSE, LOOPSLEEPDUR, config, numLoops
-    if not TURBO_MODE:
-        config = CP.ConfigParser({'DEFAULT': 'failpause'})
-        config.read("settings.ini")
-        try:
-            FAILPAUSE = int(config["DEFAULT"]["FAILPAUSE"])
-            OFFERPAUSE = int(config["DEFAULT"]["OFFERPAUSE"])
-            LOOPSLEEPDUR = int(config["DEFAULT"]["LOOPSLEEPDUR"])
-        except:
-            pass
-    else:
-        FAILPAUSE = 0
-        OFFERPAUSE = 0
-        LOOPSLEEPDUR = 1
-
-    machine = ScreenshotMachine()
+    global TURBO_MODE, tarkPos, ScriptEnabled, tarkSize, FAILPAUSE, OFFERPAUSE, LOOPSLEEPDUR, startTime, tarkHANDLE, bf, sift, images, config, numLoops, machine, MonitorsOffset, DownMonitorsOffset, posOffer, posBOT, posOK, posF5, leftMonitorsOffset, sleepDurRange, sleepDur, countSurch, surchTime, lastF5, offerTotal, failTotal, lineReplace
+    globals()
     try:
         win32gui.MoveWindow(
             tarkHANDLE, tarkPos[0], tarkPos[1], tarkSize[0], tarkSize[1], False)
@@ -242,8 +289,12 @@ def main():
             clickF5()
             preLoopTime = time()
             for _ in range(round(numLoops)):
+<<<<<<< HEAD
                 if (locateImages(machine, ("./search/NotFound.png", "./search/clockImage.png", "./search/BOT.png"),
                                  ("fail", "offer", "BOT"), (0.8, 0.85, 0.8), (clickFail, spamClickY, foundBot))):
+=======
+                if locateImages():
+>>>>>>> f6cdc4b5f76edd437b093e5573d27fbabdb6ec7c
                     break
             numLoops += time() - preLoopTime - LOOPSLEEPDUR
         else:
