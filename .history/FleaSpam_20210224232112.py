@@ -29,7 +29,7 @@ sleepDurRange = [0.0001, 0.0005]
 sleepDur = 0.0001
 countSurch = 0.0
 surchTime = 0.0
-FAILPAUSE = 0.1  # SECONDS
+FAILPAUSE = 0  # SECONDS
 OFFERPAUSE = 0
 LOOPSLEEPDUR = 1
 startTime = time()
@@ -172,8 +172,7 @@ def foundBot():
     exit()
 
 
-def locateImages(machine: ScreenshotMachine, file_loc: tuple,
-                 nickname: tuple, acc=(0.9), callback: tuple = None):
+def locateImages(machine: ScreenshotMachine, file_loc: tuple, nickname: tuple, acc: tuple = (0.9), callback: tuple = None):
     global surchTime, countSurch
     countSurch += 1
     before = time()
@@ -202,12 +201,8 @@ def main():
             generateRandomDuration()
             clickF5()
             for _ in range(3):
-                locateImages(machine, ("./search/clockImage.png",
-                                       "./search/NotFound.png",
-                                       "./search/BOT.png"),
-                             ("offer", "fail", "BOT"),
-                             (0.85, 0.9, 0.8),
-                             (spamClickY, clickFail, foundBot))
+                locateImages(machine, ("./search/clockImage.png", "./search/NotFound.png", "./search/BOT.png"),
+                             ("offer", "fail", "BOT"), (0.85, 0.9, 0.8), (spamClickY, clickFail, foundBot))
             sleep(LOOPSLEEPDUR)
         else:
             if Now is None:

@@ -29,7 +29,7 @@ sleepDurRange = [0.0001, 0.0005]
 sleepDur = 0.0001
 countSurch = 0.0
 surchTime = 0.0
-FAILPAUSE = 0.1  # SECONDS
+FAILPAUSE = 0  # SECONDS
 OFFERPAUSE = 0
 LOOPSLEEPDUR = 1
 startTime = time()
@@ -147,23 +147,23 @@ def clickFail():
     global failTotal
     failTotal += 1
     click(posOK[0], posOK[1])
-    sleep(FAILPAUSE)
+    sleep((FAILPAUSE)
     clickF5()
 
 
 def clickF5():
     global lastF5
-    now = time()
+    now=time()
     if (now-lastF5 > 5):
         pressKey(win32con.VK_F5, sleepDur)
-        lastF5 = now
+        lastF5=now
     else:
         click(posF5[0], posF5[1])
 
 
 def foundBot():
     if not TURBO_MODE:
-        choice = random.choice(list(config['DEFAULT']))
+        choice=random.choice(list(config['DEFAULT']))
         config.set("DEFAULT", choice, str(
             float(config["DEFAULT"][choice]) +
             (float(config["DEFAULT"][choice]*1.1))))
@@ -173,16 +173,16 @@ def foundBot():
 
 
 def locateImages(machine: ScreenshotMachine, file_loc: tuple,
-                 nickname: tuple, acc=(0.9), callback: tuple = None):
+                 nickname: tuple, acc=(0.9), callback: tuple=None):
     global surchTime, countSurch
     countSurch += 1
-    before = time()
-    img = machine.getLatest()
-    after = time()
+    before=time()
+    img=machine.getLatest()
+    after=time()
     surchTime += (after-before)
     for i in range(len(file_loc)):
-        rawPos = imagesearcharea(file_loc[i], 0, 0, 1920, 1080, acc[i], img)
-        avg = printAvgScans()
+        rawPos=imagesearcharea(file_loc[i], 0, 0, 1920, 1080, acc[i], img)
+        avg=printAvgScans()
         if (rawPos[0] != -1):
             print("I saw", nickname[i], " ", avg, end='\r')
             if callback is not None:
@@ -190,14 +190,14 @@ def locateImages(machine: ScreenshotMachine, file_loc: tuple,
 
 
 def main():
-    machine = ScreenshotMachine()
+    machine=ScreenshotMachine()
     win32gui.MoveWindow(
         tarkHANDLE, tarkPos[0], tarkPos[1], tarkSize[0], tarkSize[1], False)
     win32gui.SetForegroundWindow(tarkHANDLE)
-    Now = None
+    Now=None
     sys.stdout.flush()
     while(True):
-        ScriptEnabled = not win32api.GetKeyState(win32con.VK_CAPITAL)
+        ScriptEnabled=not win32api.GetKeyState(win32con.VK_CAPITAL)
         if ScriptEnabled:
             generateRandomDuration()
             clickF5()
@@ -211,7 +211,7 @@ def main():
             sleep(LOOPSLEEPDUR)
         else:
             if Now is None:
-                Now = time()
+                Now=time()
             print("Paused", str(time()-Now)[0:6], end='\r')
 
 

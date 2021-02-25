@@ -29,7 +29,7 @@ sleepDurRange = [0.0001, 0.0005]
 sleepDur = 0.0001
 countSurch = 0.0
 surchTime = 0.0
-FAILPAUSE = 0.1  # SECONDS
+FAILPAUSE = 0  # SECONDS
 OFFERPAUSE = 0
 LOOPSLEEPDUR = 1
 startTime = time()
@@ -173,7 +173,7 @@ def foundBot():
 
 
 def locateImages(machine: ScreenshotMachine, file_loc: tuple,
-                 nickname: tuple, acc=(0.9), callback: tuple = None):
+                 nickname: tuple, acc: typing.Tuple[float] = (0.9), callback: tuple = None):
     global surchTime, countSurch
     countSurch += 1
     before = time()
