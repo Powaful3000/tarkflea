@@ -136,7 +136,7 @@ def spamClickY():
         for _ in range(10):
             click(posOffer[0], posOffer[1])
             pressKey(0x59, sleepDur)
-    sleep(max(OFFERPAUSE, 0.2))
+    sleep(OFFERPAUSE)
     clickF5()
 
 
@@ -151,9 +151,10 @@ def clickFail():
 def clickF5():
     global lastF5
     now = time()
-    if (now-lastF5 > 5):
+    while (now-lastF5 > 5):
         pressKey(win32con.VK_F5, sleepDur)
         lastF5 = now
+    sleep(0.2)
     click(posF5[0], posF5[1])
 
 
