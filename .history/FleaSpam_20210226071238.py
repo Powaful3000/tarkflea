@@ -219,7 +219,7 @@ def main():
                                        "./search/NotFound.png",
                                        "./search/BOT.png"),
                              ("offer", "fail", "BOT"),
-                             (0.85, 0.8, 0.8),
+                             (0.85, 0.9, 0.8),
                              (spamClickY, clickFail, foundBot))
             sleep(LOOPSLEEPDUR)
         else:

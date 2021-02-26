@@ -14,6 +14,10 @@ import cv2
 
 TURBO_MODE = True
 
+# IMPORTANT (0 if only one monitor, I have a 21:9 2560x1080
+# monitor so I set to 2560.  Thank imagesearch for being trash.)
+leftMonitorsOffset: int = 2560
+DownMonitorsOffset: int = 0  # IMPORTANT (same shit as before)
 gameBorderH: int = 16
 gameBorderV: int = 39
 posOffer = (946, 100)  # Client Coords
@@ -185,8 +189,8 @@ def imagesearcharea(smallLoc, precision=0.8, big=None):
     return max_loc
 
 
-def locateImages(machine: ScreenshotMachine, file_loc: tuple,
-                 nickname: tuple, acc=(0.9), callback: tuple = None):
+def locateImages(machine: ScreenshotMachine = None, file_loc: tuple = None,
+                 nickname: tuple = None, acc=(0.9), callback: tuple = None):
     global surchTime, countSurch
     countSurch += 1
     before = time()
@@ -219,7 +223,7 @@ def main():
                                        "./search/NotFound.png",
                                        "./search/BOT.png"),
                              ("offer", "fail", "BOT"),
-                             (0.85, 0.8, 0.8),
+                             (0.85, 0.9, 0.8),
                              (spamClickY, clickFail, foundBot))
             sleep(LOOPSLEEPDUR)
         else:

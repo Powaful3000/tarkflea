@@ -14,6 +14,10 @@ import cv2
 
 TURBO_MODE = True
 
+# IMPORTANT (0 if only one monitor, I have a 21:9 2560x1080
+# monitor so I set to 2560.  Thank imagesearch for being trash.)
+leftMonitorsOffset: int = 2560
+DownMonitorsOffset: int = 0  # IMPORTANT (same shit as before)
 gameBorderH: int = 16
 gameBorderV: int = 39
 posOffer = (946, 100)  # Client Coords
@@ -169,12 +173,12 @@ def foundBot():
     exit()
 
 
-def imagesearcharea(smallLoc, precision=0.8, big=None):
-    img_rgb = np.array(big)
+def imagesearcharea(image, precision=0.8, im=None):
+    img_rgb = np.array(im)
     img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2GRAY)
-    template = cv2.imread(smallLoc, 0)
+    template = cv2.imread(image, 0)
     if template is None:
-        raise FileNotFoundError('Image file not found: {}'.format(smallLoc))
+        raise FileNotFoundError('Image file not found: {}'.format(image))
 
     res = cv2.matchTemplate(img_gray, template, cv2.TM_CCOEFF_NORMED)
     max_val: float
@@ -219,7 +223,7 @@ def main():
                                        "./search/NotFound.png",
                                        "./search/BOT.png"),
                              ("offer", "fail", "BOT"),
-                             (0.85, 0.8, 0.8),
+                             (0.85, 0.9, 0.8),
                              (spamClickY, clickFail, foundBot))
             sleep(LOOPSLEEPDUR)
         else:

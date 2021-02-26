@@ -3,6 +3,7 @@ from multiprocessing import connection
 import random
 import sys
 from time import sleep, time
+import typing
 import win32api
 import win32con
 import win32gui
@@ -14,6 +15,10 @@ import cv2
 
 TURBO_MODE = True
 
+# IMPORTANT (0 if only one monitor, I have a 21:9 2560x1080
+# monitor so I set to 2560.  Thank imagesearch for being trash.)
+leftMonitorsOffset: int = 2560
+DownMonitorsOffset: int = 0  # IMPORTANT (same shit as before)
 gameBorderH: int = 16
 gameBorderV: int = 39
 posOffer = (946, 100)  # Client Coords
@@ -169,7 +174,7 @@ def foundBot():
     exit()
 
 
-def imagesearcharea(smallLoc, precision=0.8, big=None):
+def imagesearcharea(smallLoc, precision=0.8, big=None) -> typing.Union[float, list]:
     img_rgb = np.array(big)
     img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2GRAY)
     template = cv2.imread(smallLoc, 0)
@@ -219,7 +224,7 @@ def main():
                                        "./search/NotFound.png",
                                        "./search/BOT.png"),
                              ("offer", "fail", "BOT"),
-                             (0.85, 0.8, 0.8),
+                             (0.85, 0.9, 0.8),
                              (spamClickY, clickFail, foundBot))
             sleep(LOOPSLEEPDUR)
         else:

@@ -3,6 +3,7 @@ from multiprocessing import connection
 import random
 import sys
 from time import sleep, time
+from typing import Any
 import win32api
 import win32con
 import win32gui
@@ -14,6 +15,10 @@ import cv2
 
 TURBO_MODE = True
 
+# IMPORTANT (0 if only one monitor, I have a 21:9 2560x1080
+# monitor so I set to 2560.  Thank imagesearch for being trash.)
+leftMonitorsOffset: int = 2560
+DownMonitorsOffset: int = 0  # IMPORTANT (same shit as before)
 gameBorderH: int = 16
 gameBorderV: int = 39
 posOffer = (946, 100)  # Client Coords
@@ -46,6 +51,9 @@ class ScreenshotMachine:
     parentConn: connection.Connection
     childConn: connection.Connection
     proc: mp.Process
+    images = [["./search/clockImage.png", "offer", 0.85, spamClickY: Any],
+              ["./search/NotFound.png", "fail", 0.9, clickFail],
+              ["./search/BOT.png", "BOT", 0.8, foundBot]]
 
     def __init__(self):
         self.parentConn, self.childConn = mp.Pipe()
@@ -84,6 +92,21 @@ class ScreenshotMachine:
         win32gui.ReleaseDC(hwnd, wDC)
         win32gui.DeleteObject(dataBitMap.GetHandle())
         return im
+    def locateImages(self, file_loc: tuple,
+                     nickname: tuple = None, acc=(0.9), callback: tuple = None):
+        global surchTime, countSurch
+        countSurch += 1
+        before = time()
+        img = self.getLatest()
+        after = time()
+        surchTime += (after-before)
+        for i in range(len(file_loc)):
+            rawPos = imagesearcharea(file_loc[i], acc[i], img)
+            avg = printAvgScans()
+            if (rawPos[0] != -1):
+                print("I saw", nickname[i], " ", avg, end='\r')
+                if callback is not None:
+                    callback[i]()
 
 
 if not TURBO_MODE:
@@ -185,23 +208,6 @@ def imagesearcharea(smallLoc, precision=0.8, big=None):
     return max_loc
 
 
-def locateImages(machine: ScreenshotMachine, file_loc: tuple,
-                 nickname: tuple, acc=(0.9), callback: tuple = None):
-    global surchTime, countSurch
-    countSurch += 1
-    before = time()
-    img = machine.getLatest()
-    after = time()
-    surchTime += (after-before)
-    for i in range(len(file_loc)):
-        rawPos = imagesearcharea(file_loc[i], acc[i], img)
-        avg = printAvgScans()
-        if (rawPos[0] != -1):
-            print("I saw", nickname[i], " ", avg, end='\r')
-            if callback is not None:
-                callback[i]()
-
-
 def main():
     machine = ScreenshotMachine()
     win32gui.MoveWindow(
@@ -219,7 +225,7 @@ def main():
                                        "./search/NotFound.png",
                                        "./search/BOT.png"),
                              ("offer", "fail", "BOT"),
-                             (0.85, 0.8, 0.8),
+                             (0.85, 0.9, 0.8),
                              (spamClickY, clickFail, foundBot))
             sleep(LOOPSLEEPDUR)
         else:
