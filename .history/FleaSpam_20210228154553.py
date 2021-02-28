@@ -231,7 +231,7 @@ def locateImages(machine: ScreenshotMachine, file_loc: tuple,
 
 
 def main():
-    global machine, scanLoop
+    global machine
     machine = ScreenshotMachine()
     win32gui.MoveWindow(
         tarkHANDLE, tarkPos[0], tarkPos[1], tarkSize[0], tarkSize[1], False)
@@ -244,15 +244,12 @@ def main():
             generateRandomDuration()
             clickF5()
             before = time()
-            for _ in range(scanLoop):
+            for _ in range(15):
                 locateImages(
                     machine, file_loc=images[0],
                     nickname=images[1], acc=images[2], callback=(
                         clickFail, spamClickY, foundBot))
-            dur = time()-before
-            timePer = dur / scanLoop
-            scanLoop = np.ceil(LOOPSLEEPDUR/timePer)
-            sleep(max(LOOPSLEEPDUR - (dur), 0))
+            sleep(max(LOOPSLEEPDUR - (time()-before), 0))
         else:
             if Now is None:
                 Now = time()
