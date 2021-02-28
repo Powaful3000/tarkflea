@@ -251,7 +251,7 @@ def main():
                         clickFail, spamClickY, foundBot))
             dur = time()-before
             timePer = dur / scanLoop
-            scanLoop = math.ceil(LOOPSLEEPDUR/timePer) + 1
+            scanLoop = math.ceil(LOOPSLEEPDUR/timePer)
             sleep(max(LOOPSLEEPDUR - (dur), 0))
         else:
             if Now is None:
