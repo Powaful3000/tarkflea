@@ -133,9 +133,10 @@ def printAvgScans() -> str:
 def spamClickY():
     global offerTotal
     offerTotal += 1
-    for _ in range(100):
-        click(posOffer[0], posOffer[1])
-        pressKey(0x59, sleepDur)
+    for _ in range(10):
+        for _ in range(10):
+            click(posOffer[0], posOffer[1])
+            pressKey(0x59, sleepDur)
     sleep(max(OFFERPAUSE, 0.1))
     clickF5()
 
@@ -213,15 +214,14 @@ def main():
         if ScriptEnabled:
             generateRandomDuration()
             clickF5()
-            before = time()
-            for _ in range(10):
+            for _ in range(7):
                 locateImages(machine, ("./search/clockImage.png",
                                        "./search/NotFound.png",
                                        "./search/BOT.png"),
                              ("offer", "fail", "BOT"),
                              (0.85, 0.8, 0.8),
                              (spamClickY, clickFail, foundBot))
-            sleep(max(LOOPSLEEPDUR - (time()-before), 0.1))
+            sleep(LOOPSLEEPDUR)
         else:
             if Now is None:
                 Now = time()

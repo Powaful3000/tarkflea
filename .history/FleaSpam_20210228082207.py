@@ -133,9 +133,10 @@ def printAvgScans() -> str:
 def spamClickY():
     global offerTotal
     offerTotal += 1
-    for _ in range(100):
-        click(posOffer[0], posOffer[1])
-        pressKey(0x59, sleepDur)
+    for _ in range(10):
+        for _ in range(10):
+            click(posOffer[0], posOffer[1])
+            pressKey(0x59, sleepDur)
     sleep(max(OFFERPAUSE, 0.1))
     clickF5()
 
