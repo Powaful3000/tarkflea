@@ -64,7 +64,7 @@ class ScreenshotMachine:
             img = self.fastScreenshot(tarkHANDLE, tarkSize[0], tarkSize[1])
             pipe.send(img)
 
-    def fastScreenshot(_, hwnd, width, height) -> PIL.Image:
+    def fastScreenshot(_, hwnd, width, height):
         wDC = win32gui.GetWindowDC(hwnd)
         dcObj = win32ui.CreateDCFromHandle(wDC)
         cDC = dcObj.CreateCompatibleDC()
