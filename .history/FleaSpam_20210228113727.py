@@ -36,11 +36,12 @@ offerTotal = 0
 failTotal = 0
 
 
-images = [("./search/NotFound.png",
-           "./search/clockImage.png",
-           "./search/BOT.png"),
-          ("fail", "offer", "BOT"),
-          (0.8, 0.85, 0.8)]
+images = ("./search/clockImage.png",
+          "./search/NotFound.png",
+          "./search/BOT.png"),
+("offer", "fail", "BOT"),
+(0.85, 0.8, 0.8),
+(spamClickY, clickFail, foundBot)
 
 
 # includes size of borders and header
@@ -147,7 +148,7 @@ def clickF5():
     click(posF5[0], posF5[1])
 
 
-def spamClickY(recurse=True):
+def spamClickY():
     global offerTotal
     offerTotal += 1
     for _ in range(100):
@@ -155,19 +156,16 @@ def spamClickY(recurse=True):
         pressKey(0x59, sleepDur)
     sleep(max(OFFERPAUSE, 0.1))
     clickF5()
-    if recurse:
-        global machine, images
-        locateImage(machine, images[0][1],
-                    images[1][1], acc=images[2][1],
-                    callback=spamClickY)
 
 
-def clickFail():
+def clickFail(recurse=None):
     global failTotal
     failTotal += 1
     click(posOK[0], posOK[1])
     sleep(max(FAILPAUSE, 0.2))
     clickF5()
+    if recurse is not None:
+        recurse()
 
 
 def foundBot():
@@ -197,22 +195,6 @@ def imagesearcharea(smallLoc, precision=0.8, big=None):
     return max_loc
 
 
-def locateImage(machine: ScreenshotMachine, file_loc,
-                nickname, acc=0.9, callback=None):
-    global surchTime, countSurch
-    countSurch += 1
-    before = time()
-    img = machine.getLatest()
-    after = time()
-    surchTime += (after-before)
-    rawPos = imagesearcharea(file_loc, acc, img)
-    avg = printAvgScans()
-    if (rawPos[0] != -1):
-        print("I saw", nickname, " ", avg, end='\r')
-        if callback is not None:
-            callback()
-
-
 def locateImages(machine: ScreenshotMachine, file_loc: tuple,
                  nickname: tuple, acc=(0.9), callback: tuple = None):
     global surchTime, countSurch
@@ -231,7 +213,6 @@ def locateImages(machine: ScreenshotMachine, file_loc: tuple,
 
 
 def main():
-    global machine
     machine = ScreenshotMachine()
     win32gui.MoveWindow(
         tarkHANDLE, tarkPos[0], tarkPos[1], tarkSize[0], tarkSize[1], False)
@@ -245,10 +226,7 @@ def main():
             clickF5()
             before = time()
             for _ in range(10):
-                locateImages(
-                    machine, file_loc=images[0],
-                    nickname=images[1], acc=images[2], callback=(
-                        clickFail, spamClickY, foundBot))
+                locateImages(machine, images)
             sleep(max(LOOPSLEEPDUR - (time()-before), 0.1))
         else:
             if Now is None:

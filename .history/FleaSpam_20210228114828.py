@@ -158,8 +158,7 @@ def spamClickY(recurse=True):
     if recurse:
         global machine, images
         locateImage(machine, images[0][1],
-                    images[1][1], acc=images[2][1],
-                    callback=spamClickY)
+                    images[1][1], acc=images[2][1], callback=spamClickY)
 
 
 def clickFail():

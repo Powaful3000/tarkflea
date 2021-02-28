@@ -36,8 +36,7 @@ offerTotal = 0
 failTotal = 0
 
 
-images = [("./search/NotFound.png",
-           "./search/clockImage.png",
+images = [("./search/NotFound.png", "./search/clockImage.png",
            "./search/BOT.png"),
           ("fail", "offer", "BOT"),
           (0.8, 0.85, 0.8)]
@@ -147,7 +146,7 @@ def clickF5():
     click(posF5[0], posF5[1])
 
 
-def spamClickY(recurse=True):
+def spamClickY(recurse=None):
     global offerTotal
     offerTotal += 1
     for _ in range(100):
@@ -155,11 +154,6 @@ def spamClickY(recurse=True):
         pressKey(0x59, sleepDur)
     sleep(max(OFFERPAUSE, 0.1))
     clickF5()
-    if recurse:
-        global machine, images
-        locateImage(machine, images[0][1],
-                    images[1][1], acc=images[2][1],
-                    callback=spamClickY)
 
 
 def clickFail():
@@ -231,7 +225,6 @@ def locateImages(machine: ScreenshotMachine, file_loc: tuple,
 
 
 def main():
-    global machine
     machine = ScreenshotMachine()
     win32gui.MoveWindow(
         tarkHANDLE, tarkPos[0], tarkPos[1], tarkSize[0], tarkSize[1], False)
@@ -247,8 +240,7 @@ def main():
             for _ in range(10):
                 locateImages(
                     machine, file_loc=images[0],
-                    nickname=images[1], acc=images[2], callback=(
-                        clickFail, spamClickY, foundBot))
+                    nickname=images[1], acc=images[2], callback=())
             sleep(max(LOOPSLEEPDUR - (time()-before), 0.1))
         else:
             if Now is None:

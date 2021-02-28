@@ -147,7 +147,7 @@ def clickF5():
     click(posF5[0], posF5[1])
 
 
-def spamClickY(recurse=True):
+def spamClickY(recurse=lambda: locateImage(machine)):
     global offerTotal
     offerTotal += 1
     for _ in range(100):
@@ -155,11 +155,8 @@ def spamClickY(recurse=True):
         pressKey(0x59, sleepDur)
     sleep(max(OFFERPAUSE, 0.1))
     clickF5()
-    if recurse:
-        global machine, images
-        locateImage(machine, images[0][1],
-                    images[1][1], acc=images[2][1],
-                    callback=spamClickY)
+    if recurse is not None:
+        recurse()
 
 
 def clickFail():
@@ -231,7 +228,6 @@ def locateImages(machine: ScreenshotMachine, file_loc: tuple,
 
 
 def main():
-    global machine
     machine = ScreenshotMachine()
     win32gui.MoveWindow(
         tarkHANDLE, tarkPos[0], tarkPos[1], tarkSize[0], tarkSize[1], False)
