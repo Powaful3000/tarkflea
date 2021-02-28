@@ -34,7 +34,7 @@ startTime = time()
 lastF5 = startTime
 offerTotal = 0
 failTotal = 0
-scanLoop = 15
+scanLoop = 5
 
 
 images = [("./search/NotFound.png",
