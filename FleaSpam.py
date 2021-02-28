@@ -7,10 +7,11 @@ import win32api
 import win32con
 import win32gui
 import win32ui
-import PIL
 import multiprocessing as mp
 import numpy as np
 import cv2
+from PIL import Image
+
 
 TURBO_MODE = True
 
@@ -64,7 +65,7 @@ class ScreenshotMachine:
             img = self.fastScreenshot(tarkHANDLE, tarkSize[0], tarkSize[1])
             pipe.send(img)
 
-    def fastScreenshot(_, hwnd, width, height):
+    def fastScreenshot(_, hwnd, width, height) -> Image:
         wDC = win32gui.GetWindowDC(hwnd)
         dcObj = win32ui.CreateDCFromHandle(wDC)
         cDC = dcObj.CreateCompatibleDC()
@@ -75,7 +76,7 @@ class ScreenshotMachine:
         # dataBitMap.SaveBitmapFile(cDC, 'screenshot.bmp')
         bmpinfo = dataBitMap.GetInfo()
         bmpstr = dataBitMap.GetBitmapBits(True)
-        im = PIL.Image.frombuffer(
+        im = Image.frombuffer(
             'RGB',
             (bmpinfo['bmWidth'], bmpinfo['bmHeight']),
             bmpstr, 'raw', 'BGRX', 0, 1)
