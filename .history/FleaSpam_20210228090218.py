@@ -144,22 +144,22 @@ def clickFail():
     global failTotal
     failTotal += 1
     click(posOK[0], posOK[1])
-    sleep(max(FAILPAUSE, 0.2))
+    sleep(max(FAILPAUSE, 0.2)
     clickF5()
 
 
 def clickF5():
     global lastF5
-    now = time()
+    now=time()
     if (now-lastF5 > 5):
         pressKey(win32con.VK_F5, sleepDur)
-        lastF5 = now
+        lastF5=now
     click(posF5[0], posF5[1])
 
 
 def foundBot():
     if not TURBO_MODE:
-        choice = random.choice(list(config['DEFAULT']))
+        choice=random.choice(list(config['DEFAULT']))
         config.set("DEFAULT", choice, str(
             float(config["DEFAULT"][choice]) +
             (float(config["DEFAULT"][choice]*1.1))))
@@ -169,32 +169,32 @@ def foundBot():
 
 
 def imagesearcharea(smallLoc, precision=0.8, big=None):
-    img_rgb = np.array(big)
-    img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2GRAY)
-    template = cv2.imread(smallLoc, 0)
+    img_rgb=np.array(big)
+    img_gray=cv2.cvtColor(img_rgb, cv2.COLOR_BGR2GRAY)
+    template=cv2.imread(smallLoc, 0)
     if template is None:
         raise FileNotFoundError('Image file not found: {}'.format(smallLoc))
 
-    res = cv2.matchTemplate(img_gray, template, cv2.TM_CCOEFF_NORMED)
+    res=cv2.matchTemplate(img_gray, template, cv2.TM_CCOEFF_NORMED)
     max_val: float
     max_loc: list
-    _, max_val, _, max_loc = cv2.minMaxLoc(res)
+    _, max_val, _, max_loc=cv2.minMaxLoc(res)
     if max_val < precision:
         return [-1, -1]
     return max_loc
 
 
 def locateImages(machine: ScreenshotMachine, file_loc: tuple,
-                 nickname: tuple, acc=(0.9), callback: tuple = None):
+                 nickname: tuple, acc=(0.9), callback: tuple=None):
     global surchTime, countSurch
     countSurch += 1
-    before = time()
-    img = machine.getLatest()
-    after = time()
+    before=time()
+    img=machine.getLatest()
+    after=time()
     surchTime += (after-before)
     for i in range(len(file_loc)):
-        rawPos = imagesearcharea(file_loc[i], acc[i], img)
-        avg = printAvgScans()
+        rawPos=imagesearcharea(file_loc[i], acc[i], img)
+        avg=printAvgScans()
         if (rawPos[0] != -1):
             print("I saw", nickname[i], " ", avg, end='\r')
             if callback is not None:
@@ -202,18 +202,18 @@ def locateImages(machine: ScreenshotMachine, file_loc: tuple,
 
 
 def main():
-    machine = ScreenshotMachine()
+    machine=ScreenshotMachine()
     win32gui.MoveWindow(
         tarkHANDLE, tarkPos[0], tarkPos[1], tarkSize[0], tarkSize[1], False)
     win32gui.SetForegroundWindow(tarkHANDLE)
-    Now = None
+    Now=None
     sys.stdout.flush()
     while(True):
-        ScriptEnabled = not win32api.GetKeyState(win32con.VK_CAPITAL)
+        ScriptEnabled=not win32api.GetKeyState(win32con.VK_CAPITAL)
         if ScriptEnabled:
             generateRandomDuration()
             clickF5()
-            before = time()
+            before=time()
             for _ in range(10):
                 locateImages(machine, ("./search/clockImage.png",
                                        "./search/NotFound.png",
@@ -224,7 +224,7 @@ def main():
             sleep(max(LOOPSLEEPDUR - (time()-before), 0.1))
         else:
             if Now is None:
-                Now = time()
+                Now=time()
             print("Paused", str(time()-Now)[0:6], end='\r')
 
 
