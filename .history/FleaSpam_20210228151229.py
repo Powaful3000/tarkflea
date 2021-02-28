@@ -40,7 +40,7 @@ images = [("./search/NotFound.png",
            "./search/clockImage.png",
            "./search/BOT.png"),
           ("fail", "offer", "BOT"),
-          (0.8, 0.9, 0.8)]
+          (0.8, 0.85, 0.8)]
 
 
 # includes size of borders and header
