@@ -12,12 +12,13 @@ import numpy as np
 import cv2
 from PIL import Image
 import math
+import os
 
 TURBO_MODE = True
 
 gameBorderH: int = 16
 gameBorderV: int = 39
-posOffer = (946, 100)  # Client Coords
+posOffer = (946, 90)  # Client Coords
 posOK = (512, 398)  # Client Coords
 posBOT = (420, 300)  # Client Coords
 posF5 = (747, 65)
@@ -75,24 +76,43 @@ class ScreenshotMachine:
             pipe.send(img)
 
     def fastScreenshot(_, hwnd, width, height) -> Image:
-        wDC = win32gui.GetWindowDC(hwnd)
-        dcObj = win32ui.CreateDCFromHandle(wDC)
-        cDC = dcObj.CreateCompatibleDC()
-        dataBitMap = win32ui.CreateBitmap()
-        dataBitMap.CreateCompatibleBitmap(dcObj, width, height)
-        cDC.SelectObject(dataBitMap)
-        cDC.BitBlt((0, 0), (width, height), dcObj, (0, 0), win32con.SRCCOPY)
-        # dataBitMap.SaveBitmapFile(cDC, 'screenshot.bmp')
-        bmpinfo = dataBitMap.GetInfo()
-        bmpstr = dataBitMap.GetBitmapBits(True)
+        #hwnd_target = win32gui.FindWindow(None, 'EscapeFromTarkov') # used for test 
+
+        left, top, right, bot = win32gui.GetWindowRect(hwnd)
+        w = right - left
+        h = bot - top
+
+        win32gui.SetForegroundWindow(hwnd)
+        #time.sleep(1.0)
+
+        hdesktop = win32gui.GetDesktopWindow()
+        hwndDC = win32gui.GetWindowDC(hdesktop)
+        mfcDC  = win32ui.CreateDCFromHandle(hwndDC)
+        saveDC = mfcDC.CreateCompatibleDC()
+
+        saveBitMap = win32ui.CreateBitmap()
+        saveBitMap.CreateCompatibleBitmap(mfcDC, w, h)
+
+        saveDC.SelectObject(saveBitMap)
+
+        result = saveDC.BitBlt((0, 0), (w, h), mfcDC, (left, top), win32con.SRCCOPY)
+
+        bmpinfo = saveBitMap.GetInfo()
+        bmpstr = saveBitMap.GetBitmapBits(True)
+
         im = Image.frombuffer(
             'RGB',
             (bmpinfo['bmWidth'], bmpinfo['bmHeight']),
             bmpstr, 'raw', 'BGRX', 0, 1)
-        dcObj.DeleteDC()
-        cDC.DeleteDC()
-        win32gui.ReleaseDC(hwnd, wDC)
-        win32gui.DeleteObject(dataBitMap.GetHandle())
+
+        win32gui.DeleteObject(saveBitMap.GetHandle())
+        saveDC.DeleteDC()
+        mfcDC.DeleteDC()
+        win32gui.ReleaseDC(hdesktop, hwndDC)
+
+        # if result == None:
+        #     #PrintWindow Succeeded
+        #     im.save("test.png")
         return im
 
 
@@ -155,11 +175,11 @@ def spamClickY(recurse=True):
         click(posOffer[0], posOffer[1])
         pressKey(0x59, sleepDur)
     sleep(max(OFFERPAUSE, 0.1))
-    if recurse:
-        global machine, images
-        locateImage(machine, images[0][1],
-                    images[1][1], acc=images[2][1],
-                    callback=spamClickY)
+    # if recurse:
+    #     global machine, images
+    #     locateImage(machine, images[0][1],
+    #                 images[1][1], acc=images[2][1],
+    #                 callback=spamClickY)
 
 
 def clickFail():
@@ -198,7 +218,7 @@ def imagesearcharea(smallLoc, precision=0.8, big=None):
 
 
 def locateImage(machine: ScreenshotMachine, file_loc,
-                nickname, acc=0.9, callback=None):
+                nickname, acc=0.8, callback=None):
     global surchTime, countSurch
     countSurch += 1
     before = time()
@@ -214,7 +234,7 @@ def locateImage(machine: ScreenshotMachine, file_loc,
 
 
 def locateImages(machine: ScreenshotMachine, file_loc: tuple,
-                 nickname: tuple, acc=(0.9), callback: tuple = None):
+                 nickname: tuple, acc=(0.8), callback: tuple = None):
     global surchTime, countSurch
     countSurch += 1
     before = time()
