@@ -1,8 +1,10 @@
+from imports import KeyState, ScreenshotMachine
 import configparser as CP
 from multiprocessing import connection
 import random
 import sys
 from time import sleep, time
+from typing import KeysView
 import win32api
 import win32con
 import win32gui
@@ -28,92 +30,26 @@ sleepDurRange = [0.0001, 0.0005]
 sleepDur = 0.0001
 countSurch = 0.0
 surchTime = 0.0
-FAILPAUSE = 0.1  # SECONDS
-OFFERPAUSE = 0
-LOOPSLEEPDUR = 2
+FAILPAUSE = 0.2  # SECONDS
+OFFERPAUSE = 0.1
+LOOPSLEEPDUR = 3
 startTime = time()
 lastF5 = startTime
 offerTotal = 0
 failTotal = 0
-scanLoop = 15
+scanLoop = 20
 
 
 images = [("./search/NotFound.png",
            "./search/clockImage.png",
            "./search/BOT.png"),
           ("fail", "offer", "BOT"),
-          (0.8, 0.9, 0.8)]
+          (0.8, 0.9, 0.6)]
 
 
 # includes size of borders and header
 tarkSize = (1024+gameBorderH, 768+gameBorderV)
 tarkHANDLE = win32gui.FindWindow(None, "EscapeFromTarkov")
-
-
-class ScreenshotMachine:
-    gameBorderH: int = 16
-    gameBorderV: int = 39
-    tarkSize = (1024+gameBorderH, 768+gameBorderV)
-    parentConn: connection.Connection
-    childConn: connection.Connection
-    proc: mp.Process
-
-    def __init__(self):
-        self.parentConn, self.childConn = mp.Pipe()
-        self.proc = mp.Process(target=self.grabLoop, args=(self.childConn,))
-        self.proc.start()
-
-    def die(self):
-        self.proc.terminate()
-
-    def getLatest(self) -> connection.Connection:
-        return self.parentConn.recv()
-
-    def grabLoop(self, pipe: connection.Connection):
-        tarkHANDLE = win32gui.FindWindow(None, "EscapeFromTarkov")
-        while True:
-            img = self.fastScreenshot(tarkHANDLE, tarkSize[0], tarkSize[1])
-            pipe.send(img)
-
-    def fastScreenshot(_, hwnd, width, height) -> Image:
-        #hwnd_target = win32gui.FindWindow(None, 'EscapeFromTarkov') # used for test 
-
-        left, top, right, bot = win32gui.GetWindowRect(hwnd)
-        w = right - left
-        h = bot - top
-
-        win32gui.SetForegroundWindow(hwnd)
-        #time.sleep(1.0)
-
-        hdesktop = win32gui.GetDesktopWindow()
-        hwndDC = win32gui.GetWindowDC(hdesktop)
-        mfcDC  = win32ui.CreateDCFromHandle(hwndDC)
-        saveDC = mfcDC.CreateCompatibleDC()
-
-        saveBitMap = win32ui.CreateBitmap()
-        saveBitMap.CreateCompatibleBitmap(mfcDC, w, h)
-
-        saveDC.SelectObject(saveBitMap)
-
-        result = saveDC.BitBlt((0, 0), (w, h), mfcDC, (left, top), win32con.SRCCOPY)
-
-        bmpinfo = saveBitMap.GetInfo()
-        bmpstr = saveBitMap.GetBitmapBits(True)
-
-        im = Image.frombuffer(
-            'RGB',
-            (bmpinfo['bmWidth'], bmpinfo['bmHeight']),
-            bmpstr, 'raw', 'BGRX', 0, 1)
-
-        win32gui.DeleteObject(saveBitMap.GetHandle())
-        saveDC.DeleteDC()
-        mfcDC.DeleteDC()
-        win32gui.ReleaseDC(hdesktop, hwndDC)
-
-        # if result == None:
-        #     #PrintWindow Succeeded
-        #     im.save("test.png")
-        return im
 
 
 if not TURBO_MODE:
@@ -151,12 +87,12 @@ def pressKey(VK_CODE, duration_press_sec):
 
 
 def printAvgScans() -> str:
-    global surchTime, countSurch, startTime
+    global surchTime, countSurch, startTime, scanLoop
     avg = surchTime/countSurch
     elapsed = time() - startTime
     return ("Average O:F " + computeAvgOF() +
             " Average time to search screen: " +
-            str(avg) + "  Elapsed: " + str(elapsed))
+            str(round(avg,6)) + "  Elapsed: " + str(round(elapsed,6)) + " scanLoop: " + str(scanLoop))
 
 
 def clickF5():
@@ -168,18 +104,14 @@ def clickF5():
     click(posF5[0], posF5[1])
 
 
-def spamClickY(recurse=True):
+def spamClickY():
     global offerTotal
     offerTotal += 1
-    for _ in range(100):
+    for _ in range(50):
         click(posOffer[0], posOffer[1])
         pressKey(0x59, sleepDur)
     sleep(max(OFFERPAUSE, 0.1))
-    # if recurse:
-    #     global machine, images
-    #     locateImage(machine, images[0][1],
-    #                 images[1][1], acc=images[2][1],
-    #                 callback=spamClickY)
+
 
 
 def clickFail():
@@ -242,6 +174,8 @@ def locateImages(machine: ScreenshotMachine, file_loc: tuple,
     after = time()
     surchTime += (after-before)
     for i in range(len(file_loc)):
+        if (keystate.scriptEnabled == False):
+            break;
         rawPos = imagesearcharea(file_loc[i], acc[i], img)
         avg = printAvgScans()
         if (rawPos[0] != -1):
@@ -251,20 +185,22 @@ def locateImages(machine: ScreenshotMachine, file_loc: tuple,
 
 
 def main():
-    global machine, scanLoop
+    global machine, scanLoop, keystate
     machine = ScreenshotMachine()
+    keystate = KeyState()
     win32gui.MoveWindow(
         tarkHANDLE, tarkPos[0], tarkPos[1], tarkSize[0], tarkSize[1], False)
     win32gui.SetForegroundWindow(tarkHANDLE)
     Now = None
     sys.stdout.flush()
     while(True):
-        ScriptEnabled = not win32api.GetKeyState(win32con.VK_CAPITAL)
-        if ScriptEnabled:
+        if (keystate.scriptEnabled()):
             generateRandomDuration()
             clickF5()
             before = time()
             for _ in range(scanLoop):
+                if (keystate.scriptEnabled() == False):
+                    break
                 locateImages(
                     machine, file_loc=images[0],
                     nickname=images[1], acc=images[2], callback=(
@@ -272,7 +208,7 @@ def main():
             dur = time()-before
             timePer = dur / scanLoop
             scanLoop = math.ceil(LOOPSLEEPDUR/timePer) + 1
-            sleep(max(LOOPSLEEPDUR - (dur), 0))
+            sleep(max((LOOPSLEEPDUR - (dur)), 0))
         else:
             if Now is None:
                 Now = time()
