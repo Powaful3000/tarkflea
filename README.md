@@ -10,8 +10,10 @@ python3 -m pip install -r requirements.txt
 
 Windowed mode
 
-CAPSLOCK on = bot on, off = bot off.
+on flea filter by item, set filters with maximum ruble price, save filter, CLICK X ON THE FILTER BY ITEM. 
 
-on flea filter by item, set filters with maximum ruble price, save filter, CLICK X ON THE FILTER BY ITEM.  
+python3 FleaSpam.py
+
+CAPSLOCK on = bot on, off = bot off. 
 
 # :)
