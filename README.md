@@ -1,4 +1,4 @@
-# ho doinf
+# how doinf
  
 install python3
 
