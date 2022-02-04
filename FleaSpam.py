@@ -1,10 +1,6 @@
-<<<<<<< HEAD
 import pytesseract
 import os
 import re
-=======
-import os
->>>>>>> c9fc9c351436c0cb51e19656b25e703d0d304329
 from PIL import Image
 import win32ui
 import random
@@ -22,11 +18,7 @@ def computeAvgOF() -> str:
 def click(x: int, y: int):
     win32api.SetCursorPos(win32gui.ClientToScreen(tarkHANDLE, (x, y)))
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)
-<<<<<<< HEAD
     sleep(sleepDur)
-=======
-    randSleep()
->>>>>>> c9fc9c351436c0cb51e19656b25e703d0d304329
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
 def press_key(VK_CODE, duration_press_sec):
     win32api.keybd_event(VK_CODE, 0, 0, 0)
@@ -55,17 +47,8 @@ def spamClickY(rawPos=None):
     y = posOffer[1]
     if rawPos is not None:
         x, y = rawPos
-<<<<<<< HEAD
     before = time()
     for _ in range(clickLoop):
-=======
-    # print(spamCount, "click", x, y, rawPos)
-    if spamCount >= 5:
-        spamCount = 0
-        clickF5()
-        return
-    for _ in range(30):
->>>>>>> c9fc9c351436c0cb51e19656b25e703d0d304329
         click(x, y)
         press_key(0x59, sleepDur)
     after = time()
@@ -266,16 +249,11 @@ def locateImages(
             if callback is not None:
                 if passRawPos is None:
                     callback[i]()
-<<<<<<< HEAD
-=======
-
->>>>>>> c9fc9c351436c0cb51e19656b25e703d0d304329
                 elif passRawPos[i]:
                     callback[i](rawPos)
                 else:
                     callback[i]()
                     break
-<<<<<<< HEAD
 def locate_images_keys(keys: tuple):
     global surchTime, countSurch
     countSurch += 1
@@ -297,10 +275,6 @@ def locate_images_keys(keys: tuple):
             else:
                 imageDict[key][2]()
                 break
-=======
-
-
->>>>>>> c9fc9c351436c0cb51e19656b25e703d0d304329
 def checkPause():
     if not win32api.GetKeyState(win32con.VK_CAPITAL):
         print()
@@ -311,15 +285,8 @@ def checkPause():
             sleep(0.1)
         return True
     return False
-<<<<<<< HEAD
 def fastScreenshot() -> Image.Image:
     start = time()
-=======
-
-
-def fastScreenshot() -> Image.Image:
-
->>>>>>> c9fc9c351436c0cb51e19656b25e703d0d304329
     left, top, right, bot = win32gui.GetWindowRect(tarkHANDLE)
     w = right - left
     h = bot - top
@@ -330,24 +297,12 @@ def fastScreenshot() -> Image.Image:
     saveBitMap = win32ui.CreateBitmap()
     saveBitMap.CreateCompatibleBitmap(mfcDC, w, h)
     saveDC.SelectObject(saveBitMap)
-<<<<<<< HEAD
     saveDC.BitBlt((0, 0), (w, h), mfcDC, (left, top), win32con.SRCCOPY)
     bmpinfo = saveBitMap.GetInfo()
     bmpstr = saveBitMap.GetBitmapBits(True)
     im = Image.frombuffer(
         "RGB", (bmpinfo["bmWidth"], bmpinfo["bmHeight"]), bmpstr, "raw", "BGRX", 0, 1
     )
-=======
-
-    saveDC.BitBlt((0, 0), (w, h), mfcDC, (left, top), win32con.SRCCOPY)
-
-    bmpinfo = saveBitMap.GetInfo()
-    bmpstr = saveBitMap.GetBitmapBits(True)
-
-    im = Image.frombuffer(
-        "RGB", (bmpinfo["bmWidth"], bmpinfo["bmHeight"]), bmpstr, "raw", "BGRX", 0, 1)
-
->>>>>>> c9fc9c351436c0cb51e19656b25e703d0d304329
     win32gui.DeleteObject(saveBitMap.GetHandle())
     saveDC.DeleteDC()
     mfcDC.DeleteDC()
@@ -360,14 +315,7 @@ def fastScreenshot() -> Image.Image:
     return im
 def doJumping():
     if random.uniform(0, 1) < 0.5:
-<<<<<<< HEAD
         press_key(0x20, sleepDur)  # Spacebar
-=======
-        generateRandomDuration()
-        pressKey(0x20, sleepDur)  # Spacebar
-
-
->>>>>>> c9fc9c351436c0cb51e19656b25e703d0d304329
 def antiAFK():
     print("Begin antiAFK")
     loop = 0
@@ -375,18 +323,13 @@ def antiAFK():
     click(76, 1064)  # Main Menu Button
     sleep(random.uniform(1, 2))
     click(954, 868)  # Hideout Button
-<<<<<<< HEAD
     sleep(random.uniform(3, 5))
-=======
-    sleep(random.uniform(5, 7))
->>>>>>> c9fc9c351436c0cb51e19656b25e703d0d304329
     print()
     locate
     while not locate_image_ndarray(*imageDict["hideoutEnter"]):
         print("Waiting for Enter button", progressSpinner[loop % 4], end="\r")
         loop += 1
         sleep(0.1)
-<<<<<<< HEAD
     sleep(1)
     press_key(win32con.VK_RETURN, sleepDur)
     sleep(random.uniform(3, 4))
@@ -401,47 +344,16 @@ def antiAFK():
     sleep(random.uniform(1, 2))
     click(1250, 1055)  # Flea Market Button
     sleep(random.uniform(1, 2))
-=======
-    sleep(2)
-    generateRandomDuration()
-    pressKey(win32con.VK_RETURN, sleepDur)
-    sleep(random.uniform(5, 7))
-    doJumping()
-    pressKey(0x57, random.uniform(7.5, 12.5))  # W
-    doJumping()
-    pressKey(0x53, random.uniform(7.5, 12.5))  # S
-    doJumping()
-    generateRandomDuration()
-    pressKey(win32con.VK_ESCAPE, sleepDur)
-    sleep(random.uniform(3, 5))
-    generateRandomDuration()
-    pressKey(win32con.VK_ESCAPE, sleepDur)
-    sleep(random.uniform(3, 5))
-    click(1250, 1055)  # Flea Market Button
-    sleep(random.uniform(3, 5))
-
-
->>>>>>> c9fc9c351436c0cb51e19656b25e703d0d304329
 def fleaCheck():
     # runs if not on flea page
     if not locateImage("./search/flea.png", "flea,", acc=0.9):
         print("not in flea :(")
         for _ in range(5):
-<<<<<<< HEAD
             press_key(win32con.VK_ESCAPE, sleepDur)
             sleep(sleepDur)
         sleep(random.uniform(0.5, 0.7))
         click(1260, 1060)  # flea button
         sleep(random.uniform(1, 2))
-=======
-            pressKey(win32con.VK_ESCAPE, sleepDur)
-            randSleep()
-        sleep(random.uniform(.5, .7))
-        click(1260, 1060)  # flea button
-        sleep(random.uniform(1, 2))
-
-
->>>>>>> c9fc9c351436c0cb51e19656b25e703d0d304329
 def antiAFK2():
     sleep(sleepDur)
     press_key(win32con.VK_ESCAPE, sleepDur)
@@ -454,7 +366,6 @@ def ctrlClick(rawPos=None):
     sleep(sleepDur)
     win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
     click(1, 1)
-<<<<<<< HEAD
     sleep(sleepDur)
 def collect_sells(dir: str):
     sellImages = []
@@ -531,151 +442,18 @@ def sell_items(searchArr) -> int:
     # fleaCheck()
     return total
 autoSellBool = True
-=======
-    randSleep()
-
-
-# def sellFuelCon():
-#     searchArr = (("./search/fcon1.png", "fcon1", 0.93),
-#                  ("./search/fcon2.png", "fcon2", 0.93))
-#     print("Selling Fuel Conn")
-#     for _ in range(25):  # spam so go home :)
-#         randSleep()
-#         pressKey(win32con.VK_ESCAPE, sleepDur)
-#     sleep(random.uniform(2, 3))
-#     click(1114, 1065)  # Traders button
-#     sleep(random.uniform(2, 3))
-#     click(871, 413)  # The Rapist
-#     sleep(random.uniform(2, 3))
-#     click(240, 45)  # Sell button
-#     sleep(random.uniform(1, 2))
-#     # At sell page, start sell loop
-#     region = (1265, 250, 1920, 1080)
-#     for _ in range(10):
-#         noneStreak = 0
-#         didFind = False
-#         if not checkPause():
-#             fuelConSold = 0
-#             while True:
-#                 if not checkPause():
-#                     if noneStreak >= 10:
-#                         print("noneStreak >= 10")
-#                         break
-#                     for search in searchArr:
-#                         didFind = False
-#                         if locateImage(search[0], search[1], search[2], ctrlClick, True, region):
-#                             fuelConSold += 1
-#                             didFind = True
-#                     if didFind:
-#                         noneStreak = 0
-#                     else:
-#                         noneStreak += 1
-#             randSleep()
-#             print("fuelConSold", fuelConSold)
-#             if fuelConSold > 0:
-#                 print("click deal :)")
-#                 for _ in range(5):
-#                     click(956, 182)  # Deal button
-#                     randSleep()
-#             randSleep()
-#             click(1613, 542)  # click / move mouse to where it scrolls
-#             randSleep()
-#             for _ in range(8):
-#                 # print("scroll down")
-#                 win32api.mouse_event(
-#                     win32con.MOUSEEVENTF_WHEEL, 1613, 542, -1, 0)  # Scroll down
-#                 randSleep()
-#     fleaCheck()
-
-def collect_sells(dir:str):
-    sellImages = []
-    for filename in os.listdir(dir):
-        filepath = os.path.join(dir, filename)
-        sellImages.append((filepath, filename, 0.95))
-    return sellImages
-
-def sell_items(searchArr):
-    print("Selling Items")
-    for _ in range(25):  # spam so go home :)
-        randSleep()
-        pressKey(win32con.VK_ESCAPE, sleepDur)
-    sleep(random.uniform(2, 3))
-    click(1114, 1065)  # Traders button
-    sleep(random.uniform(2, 3))
-    click(871, 413)  # The Rapist
-    sleep(random.uniform(2, 3))
-    click(240, 45)  # Sell button
-    sleep(random.uniform(1, 2))
-    # At sell page, start sell loop
-    region = (1265, 250, 1920, 1080)
-    click(1613, 542)  # click / move mouse to where it scrolls
-    for _ in range(200):
-                # print("scroll down")
-        win32api.mouse_event(win32con.MOUSEEVENTF_WHEEL, 1613, 542, -1, 0)  # Scroll down
-        randSleep()
-    for _ in range(10):
-        noneStreak = 0
-        didFind = False
-        if not checkPause():
-            fuelConSold = 0
-            while True:
-                if not checkPause():
-                    if noneStreak >= 3:
-                        print("noneStreak >= 3")
-                        break
-                    if (fuelConSold%20==0):
-                        for _ in range(5):
-                            click(956, 182)  # Deal button
-                            randSleep()
-                    for search in searchArr:
-                        didFind = False
-                        if locateImage(search[0], search[1], search[2], ctrlClick, True, region):
-                            fuelConSold += 1
-                            didFind = True
-                    if didFind:
-                        noneStreak = 0
-                    else:
-                        noneStreak += 1
-            randSleep()
-            print("fuelConSold", fuelConSold)
-            if fuelConSold > 0:
-                print("click deal :)")
-                for _ in range(5):
-                    click(956, 182)  # Deal button
-                    randSleep()
-            randSleep()
-            click(1613, 542)  # click / move mouse to where it scrolls
-            randSleep()
-            for _ in range(8):
-                # print("scroll down")
-                win32api.mouse_event(
-                    win32con.MOUSEEVENTF_WHEEL, 1613, 542, 1, 0)  # Scroll UP
-                randSleep()
-    fleaCheck()
-
-
->>>>>>> c9fc9c351436c0cb51e19656b25e703d0d304329
 posOffer = (1774, 178)  # Client Coords
 posOK = (962, 567)  # Client Coords
 posBOT = (420, 300)  # Client Coords
 posF5 = (1411, 122)
 tarkPos = (0, 0)  # doesnt really matter
 ScriptEnabled = True
-<<<<<<< HEAD
 sleepDur = 0.00001
-=======
-sleepDurRange = [0.0001, 0.0003]
-sleepDur = 0.00020
->>>>>>> c9fc9c351436c0cb51e19656b25e703d0d304329
 countSurch = 0.0
 surchTime = 0.0
 FAILPAUSE = 0  # SECONDS
 OFFERPAUSE = 0.0
-<<<<<<< HEAD
 LOOPSLEEPDUR = random.uniform(0, 0.1) + 0.7
-=======
-LOOPSLEEPDUR = random.uniform(0,0.1) + 0.5
->>>>>>> c9fc9c351436c0cb51e19656b25e703d0d304329
 startTime = time()
 lastF5 = startTime
 offerTotal = 0
@@ -684,16 +462,11 @@ scanLoop = 3
 spamCount = 0
 allowedSecondsAFK = 1200
 progressSpinner = ["/", "-", "\\", "|"]
-<<<<<<< HEAD
 clickLoop = 15
-=======
-random.uniform
->>>>>>> c9fc9c351436c0cb51e19656b25e703d0d304329
 # includes size of borders and header
 tarkSize = (1920, 1080)
 tarkHANDLE = win32gui.FindWindow(None, "EscapeFromTarkov")
 # , "./search/BOT.png"   , "BOT"    , 0.9
-<<<<<<< HEAD
 # images = [
 #     (
 #         "./search/purchaseClear.png",
@@ -794,37 +567,18 @@ botDict = {
     "Screwdriver": cv2.imread("./search/sellItems/botItems/screwdriver.png",0),
     "Toilet paper": cv2.imread("./search/sellItems/botItems/tp.png", 0),
 }
-=======
-images = [
-    ("./search/purchaseClear.png",
-     "./search/afkWarning.png", "./search/NotFound1080.png"),
-    ("offer", "afk", "fail"),
-    (0.9, 0.9, 0.9),
-    (spamClickY, antiAFK2, clickFail),
-    (True, False, True),
-]
-
-# TODO all button
-
-
->>>>>>> c9fc9c351436c0cb51e19656b25e703d0d304329
 def main():
     global scanLoop
     sellItems = collect_sells("./search/sellItems/")
     win32gui.MoveWindow(
-<<<<<<< HEAD
         tarkHANDLE, tarkPos[0], tarkPos[1], tarkSize[0], tarkSize[1], False
     )
-=======
-        tarkHANDLE, tarkPos[0], tarkPos[1], tarkSize[0], tarkSize[1], False)
->>>>>>> c9fc9c351436c0cb51e19656b25e703d0d304329
     win32gui.SetForegroundWindow(tarkHANDLE)
     sys.stdout.flush()
     afkTime = time()
     c1 = c2 = r = 0
     start = time()
     while True:
-<<<<<<< HEAD
         checkPause()
         if (time()-afkTime>allowedSecondsAFK):
             afkTime = time() # reset afkTime to now
@@ -866,38 +620,6 @@ def main():
             dur,
             c1,c2
         )
-=======
-        if not checkPause():
-            # if (time()-afkTime>allowedSecondsAFK):
-            #     afkTime = time() # reset afkTime to now
-            #     antiAFK()
-            generateRandomDuration()
-            clickF5()
-            before = time()
-            for _ in range(scanLoop):
-                loopNum += 1
-                checkPause()
-                # print("localImages",i)
-                if loopNum % 50 == 0:
-                    # check for flea
-                    fleaCheck()
-                    if loopNum % 1500 == 0:
-                        sell_items(sellItems)
-                locateImages(
-                    file_loc=images[0],
-                    nickname=images[1],
-                    acc=images[2],
-                    callback=(spamClickY, antiAFK2, clickFail),
-                    passRawPos=(True, False, True),
-                )
-            dur = time() - before
-            timePer = dur / scanLoop
-            scanLoop = math.ceil(LOOPSLEEPDUR / timePer) + 1
-            # sleep(max((LOOPSLEEPDUR - (dur)), 0))
-            # print("scanLoop",scanLoop)
-
-
->>>>>>> c9fc9c351436c0cb51e19656b25e703d0d304329
 if __name__ == "__main__":
     main()
 # TODO LISTS
