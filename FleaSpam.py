@@ -13,17 +13,25 @@ import numpy as np
 import cv2
 import math
 from difflib import get_close_matches
+
+
 def computeAvgOF() -> str:
     return str(offerTotal) + "/" + str(failTotal)
+
+
 def click(x: int, y: int):
     win32api.SetCursorPos(win32gui.ClientToScreen(tarkHANDLE, (x, y)))
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0)
     sleep(sleepDur)
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0)
+
+
 def press_key(VK_CODE, duration_press_sec):
     win32api.keybd_event(VK_CODE, 0, 0, 0)
     sleep(duration_press_sec)
     win32api.keybd_event(VK_CODE, 0, win32con.KEYEVENTF_KEYUP, 0)
+
+
 def printAvgScans() -> str:
     global surchTime, countSurch, startTime, scanLoop
     avg = surchTime / countSurch
@@ -38,10 +46,14 @@ def printAvgScans() -> str:
         + " scanLoop: "
         + str(scanLoop)
     )
+
+
 def click_f5():
     click(posF5[0], posF5[1])
+
+
 def spamClickY(rawPos=None):
-    global offerTotal,clickLoop,LOOPSLEEPDUR
+    global offerTotal, clickLoop, LOOPSLEEPDUR
     offerTotal += 1
     x = posOffer[0]
     y = posOffer[1]
@@ -50,11 +62,16 @@ def spamClickY(rawPos=None):
     before = time()
     for _ in range(clickLoop):
         click(x, y)
+        # sleep(0.01)
+        # click(1146, 488)  # all button
+        # sleep(0.01)
         press_key(0x59, sleepDur)
     after = time()
-    timePer = (after - before)/clickLoop
-    clickLoop = math.ceil(LOOPSLEEPDUR/timePer)
-    sleep(max(OFFERPAUSE, 0.1))
+    timePer = (after - before) / clickLoop
+    clickLoop = math.floor(LOOPSLEEPDUR / timePer) + 1
+    sleep(OFFERPAUSE)
+
+
 def clickFail(rawPos=None):
     global failTotal
     failTotal += 1
@@ -66,6 +83,8 @@ def clickFail(rawPos=None):
         y += 10
     click(x, y)
     sleep(max(FAILPAUSE, 0.2))
+
+
 def fast_screenshot(handle: int) -> np.ndarray:
     start = time()
     left, top, right, bot = win32gui.GetWindowRect(handle)
@@ -83,8 +102,6 @@ def fast_screenshot(handle: int) -> np.ndarray:
     signedIntsArray = saveBitMap.GetBitmapBits(True)
     img = np.frombuffer(signedIntsArray, dtype="uint8")
     img.shape = (h, w, 4)
-    # print(type(im))
-    # cv2.imshow("asd", im)
     win32gui.DeleteObject(saveBitMap.GetHandle())
     saveDC.DeleteDC()
     mfcDC.DeleteDC()
@@ -94,41 +111,77 @@ def fast_screenshot(handle: int) -> np.ndarray:
     # make image C_CONTIGUOUS to avoid errors with cv.rectangle()
     # img = np.ascontiguousarray(img)
     # make grey for my template match
-    # img = cv2.cvtColor(img, cv2.COLOR_BGR)
+    # img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
     end = time()
     print("fast_screenshot took", end - start)
     return img
+
+
 def found_bot(pos: tuple):
-    #return
+    # return
     print("Found bot X at pos", pos)
-    text=matches=""
+    text = matches = ""
     (x2, y1) = pos
     x2 += imageDict["bot"][0].shape[1]
     # y1 += 70
     x1 = 1920 - x2
     y2 = y1 + 100
     # ocrRegion = (x1, y1, x2, y2)
-    img = fast_screenshot(tarkHANDLE)[y1:y2, x1:x2]
+    fullImg = fast_screenshot(tarkHANDLE)
+    # fullImg = cv2.cvtColor(fullImg, cv2.COLOR_BGR2GRAY)
+    img = fullImg[y1:y2, x1:x2]
     cv2.imwrite("asd.JPG", img)
-    for i in range(14):
-        if len(matches)>0:
-            break
-        config = "--psm " + str(i)
-        print(config)
-        text = pytesseract.image_to_string(img, lang='bender',config=config)
-        print("read text:", text)
-        matches = get_close_matches(text, botDict.keys(), 1, 0.2)
-        print("matches", matchingKeys)
-    if len(matches)==0:
+
+    #####Post processing for accuracy
+
+    img = cv2.resize(img, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+    img = cv2.bilateralFilter(img, 9, 75, 75)
+    # img = cv2.GaussianBlur(img, (3, 3), 0)
+    # img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    # img = cv2.adaptiveThreshold(
+    #     img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 21, 0
+    # )
+    # cv2.imshow("img", img)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
+    #####
+
+    text = pytesseract.image_to_string(img, lang="bender")
+    print("read text:", text)
+    index = -1
+    found = "You must choose all:"
+    if found in text:
+        index = text.find(found)
+        if index == -1:
+            return
+        text = text[len(text) :]
+
+    matches = get_close_matches(text, botDict.keys(), 1, 0.2)
+    print("matches", matches)
+    ##
+
+    if len(matches) == 0:
+        print("none sadge")
         return
     match = botDict[matches[0]]
-    print(match)
-    print(type(match))
+    # match = cv2.cvtColor(match, cv2.COLOR_BGR2RGB)
+    # print(match) # big output np array
+    # print(type(fullImg), type(match))
+    # print(fullImg.shape, match.shape)
+    # print(fullImg.dtype, match.dtype)
+    # cv2.imshow("fullImg", fullImg)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
+    # cv2.imshow("match", match)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
     # multi-template match
-    result = cv2.matchTemplate(img, match[0], cv2.TM_CCOEFF_NORMED)
-    (xCoords,yCoords) = np.where(result >= 0.99)
-    for (x,y) in zip(xCoords, yCoords):
+    result = cv2.matchTemplate(fullImg, match, cv2.TM_CCOEFF_NORMED)  # img -> fullImg
+    (yCoords, xCoords) = np.where(result >= 0.95)
+    for (y, x) in zip(yCoords, xCoords):
         print("finna click", x, y)
+        click(x, y)
+        sleep(0.1)
     # itemTemplate = cv2.imread(imgDir)
     # h, w = itemTemplate.shape[:2]
     # method = cv2.TM_CCOEFF_NORMED
@@ -136,7 +189,11 @@ def found_bot(pos: tuple):
     # start = time()
     # res = cv2.matchTemplate(img, itemTemplate, method)
     # # TODO
-    sys.exit()
+    sleep(0.1)
+    xConfirm, yConfirm = (960, 1080 - pos[1] - 30)
+    return
+
+
 # TODO change to region to fullscreen search
 # subrect = big[y:y+h , x:x+h]
 def imagesearcharea(smallLoc, precision=0.8, big=None, region=None):
@@ -156,13 +213,22 @@ def imagesearcharea(smallLoc, precision=0.8, big=None, region=None):
         return [-1, -1]
     print("found", smallLoc, "at", max_loc)
     return max_loc
+
+
 def image_search_area_ndarray(
-    template: np.ndarray, precision=0.8, screenshot: np.ndarray = None, region=None,
+    template: np.ndarray,
+    precision=0.8,
+    screenshot: np.ndarray = None,
+    region=None,
 ):
     # template
     img_rgb = np.array(screenshot)
     img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2GRAY)
-    res = cv2.matchTemplate(img_gray, template, cv2.TM_CCOEFF_NORMED,)
+    res = cv2.matchTemplate(
+        img_gray,
+        template,
+        cv2.TM_CCOEFF_NORMED,
+    )
     max_val: float
     max_loc: list
     _, max_val, _, max_loc = cv2.minMaxLoc(res)
@@ -172,9 +238,9 @@ def image_search_area_ndarray(
     if max_val < precision:
         return [-1, -1]
     return max_loc
-def locateImage(
-    file_loc, nickname, acc=0.8, callback=None, passRawPos=False, region=None
-):
+
+
+def locateImage(file_loc, nickname, acc=0.8, callback=None, passRawPos=False, region=None):
     global surchTime, countSurch
     countSurch += 1
     before = time()
@@ -200,10 +266,16 @@ def locateImage(
                 callback()
         return True
     return False
+
+
 def locate_image_ndarray(
-    image: np.ndarray, acc=0.8, callback=None, passRawPos=False, region=None,
+    image: np.ndarray,
+    acc=0.8,
+    callback=None,
+    passRawPos=False,
+    region=None,
 ):
-    global searchTime, countSurch
+    global surchTime, countSurch
     countSurch += 1
     before = time()
     # img = machine.get()
@@ -215,7 +287,7 @@ def locate_image_ndarray(
     after = time()
     surchTime += after - before
     # print("calling image_search_area", acc)
-    rawPosX, rawPosY = image_search_area(image, acc, img)
+    rawPosX, rawPosY = image_search_area_ndarray(image, acc, img)
     if rawPosX != -1:
         if region is not None:
             rawPosX += region[0]
@@ -227,15 +299,15 @@ def locate_image_ndarray(
                 callback()
         return True
     return False
-def locateImages(
-    file_loc: tuple, nickname: tuple, acc=(0.8), callback: tuple = None, passRawPos=None
-):
+
+
+def locateImages(file_loc: tuple, nickname: tuple, acc=(0.8), callback: tuple = None, passRawPos=None):
     global surchTime, countSurch
     countSurch += 1
     before = time()
     img = fastScreenshot()
     after = time()
-    #print(after-before, "fastScreenshot")
+    # print(after-before, "fastScreenshot")
     surchTime += after - before
     # print("length", len(file_loc))
     for i in range(len(file_loc)):
@@ -254,6 +326,8 @@ def locateImages(
                 else:
                     callback[i]()
                     break
+
+
 def locate_images_keys(keys: tuple):
     global surchTime, countSurch
     countSurch += 1
@@ -262,19 +336,22 @@ def locate_images_keys(keys: tuple):
     img = fastScreenshot()
     # print("Image Type1:", type(img))
     after = time()
-    #print(after-before, "fastScreenshot")
+    # print(after-before, "fastScreenshot")
     surchTime += after - before
     for key in keys:
         checkPause()
-        #image, precision, callback, passArgs, region = imageDict[key]
+        # image, precision, callback, passArgs, region = dictImage
         # print(key, precision, callback, passArgs, region)
-        rawPos = image_search_area_ndarray(imageDict[key][0], imageDict[key][1], img, imageDict[key][4])
-        if rawPos[0] != -1 and imageDict[key][2] is not None:
-            if imageDict[key][3]:
-                imageDict[key][2](rawPos)
+        dictImage = imageDict[key]
+        rawPos = image_search_area_ndarray(dictImage[0], dictImage[1], img, dictImage[4])
+        if rawPos[0] != -1 and dictImage[2] is not None:
+            if dictImage[3]:
+                dictImage[2](rawPos)
             else:
-                imageDict[key][2]()
+                dictImage[2]()
                 break
+
+
 def checkPause():
     if not win32api.GetKeyState(win32con.VK_CAPITAL):
         print()
@@ -285,6 +362,8 @@ def checkPause():
             sleep(0.1)
         return True
     return False
+
+
 def fastScreenshot() -> Image.Image:
     start = time()
     left, top, right, bot = win32gui.GetWindowRect(tarkHANDLE)
@@ -300,32 +379,32 @@ def fastScreenshot() -> Image.Image:
     saveDC.BitBlt((0, 0), (w, h), mfcDC, (left, top), win32con.SRCCOPY)
     bmpinfo = saveBitMap.GetInfo()
     bmpstr = saveBitMap.GetBitmapBits(True)
-    im = Image.frombuffer(
-        "RGB", (bmpinfo["bmWidth"], bmpinfo["bmHeight"]), bmpstr, "raw", "BGRX", 0, 1
-    )
+    im = Image.frombuffer("RGB", (bmpinfo["bmWidth"], bmpinfo["bmHeight"]), bmpstr, "raw", "BGRX", 0, 1)
     win32gui.DeleteObject(saveBitMap.GetHandle())
     saveDC.DeleteDC()
     mfcDC.DeleteDC()
     win32gui.ReleaseDC(hdesktop, hwndDC)
     # if result == None:
     #     #PrintWindow Succeeded
-    #     im.save("test.png")
+    #     im.save("test.png",0)
     end = time()
-    #print("fastScreenshot took", end - start)
+    # print("fastScreenshot took", end - start)
     return im
+
+
 def doJumping():
     if random.uniform(0, 1) < 0.5:
         press_key(0x20, sleepDur)  # Spacebar
+
+
 def antiAFK():
     print("Begin antiAFK")
     loop = 0
-    sleep(random.uniform(1, 2))
+    sleep(random.uniform(2, 3))
     click(76, 1064)  # Main Menu Button
-    sleep(random.uniform(1, 2))
+    sleep(random.uniform(2, 3))
     click(954, 868)  # Hideout Button
-    sleep(random.uniform(3, 5))
-    print()
-    locate
+    sleep(random.uniform(5, 6))
     while not locate_image_ndarray(*imageDict["hideoutEnter"]):
         print("Waiting for Enter button", progressSpinner[loop % 4], end="\r")
         loop += 1
@@ -344,6 +423,8 @@ def antiAFK():
     sleep(random.uniform(1, 2))
     click(1250, 1055)  # Flea Market Button
     sleep(random.uniform(1, 2))
+
+
 def fleaCheck():
     # runs if not on flea page
     if not locateImage("./search/flea.png", "flea,", acc=0.9):
@@ -354,9 +435,13 @@ def fleaCheck():
         sleep(random.uniform(0.5, 0.7))
         click(1260, 1060)  # flea button
         sleep(random.uniform(1, 2))
+
+
 def antiAFK2():
     sleep(sleepDur)
     press_key(win32con.VK_ESCAPE, sleepDur)
+
+
 def ctrlClick(rawPos=None):
     print("ctrlClick")
     x, y = rawPos
@@ -367,6 +452,8 @@ def ctrlClick(rawPos=None):
     win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
     click(1, 1)
     sleep(sleepDur)
+
+
 def collect_sells(dir: str):
     sellImages = []
     for filename in os.listdir(dir):
@@ -375,26 +462,32 @@ def collect_sells(dir: str):
             continue
         sellImages.append((filepath, filename, 0.95))
     return sellImages
+
+
 def wait_until(key: str, whatdo=None):
     while not locate_image_ndarray(*imageDict[key]):
-        check_pause()
+        checkPause()
         if whatdo is not None:
             for doTup in whatdo:
                 if len(doTup[0]) > 1:
                     doTup[0](*doTup[1])
                 else:
                     doTup[0]()
+
+
 def saw_sleep_click(nickname, sleepRange, clickLoc):
     print("".join(("saw", nickname)))
     sleep(r(*sleepRange))
     click(*clickLoc)
+
+
 def sell_items(searchArr) -> int:
     print("Selling Items")
     wait_until("mainMenu", (press_key, (win32con.VK_ESCAPE, sleepDur)))
     saw_sleep_click("menu", (0.5, 0.75), (1114, 1065))
-    wait_until("rapist", (sleep, (0.5)))
+    wait_until("rapist", ((sleep, 0.5)))
     saw_sleep_click("rapist", (0.25, 0.5), (871, 413))
-    wait_until("rapistLoaded", (sleep, (0.5)))
+    wait_until("rapistLoaded", ((sleep, 0.5)))
     saw_sleep_click("rapist menu", (0.25, 0.5), (240, 45))
     total = 0
     region = (1265, 250, 1920, 1080)
@@ -415,9 +508,7 @@ def sell_items(searchArr) -> int:
                     sleep(sleepDur)
             for search in searchArr:
                 didFind = False
-                if locateImage(
-                    search[0], search[1], search[2], ctrlClick, True, region
-                ):
+                if locateImage(search[0], search[1], search[2], ctrlClick, True, region):
                     itemsSold += 1
                     total += 1
                     didFind = True
@@ -434,14 +525,14 @@ def sell_items(searchArr) -> int:
         click(1613, 542)  # click / move mouse to where it scrolls
         sleep(sleepDur)
         for _ in range(8):
-            win32api.mouse_event(
-                win32con.MOUSEEVENTF_WHEEL, 1613, 542, -1, 0
-            )  # Scroll down
+            win32api.mouse_event(win32con.MOUSEEVENTF_WHEEL, 1613, 542, -1, 0)  # Scroll down
             sleep(sleepDur)
     click(956, 182)  # Deal button
     # fleaCheck()
     return total
-autoSellBool = True
+
+
+autoSellBool = False
 posOffer = (1774, 178)  # Client Coords
 posOK = (962, 567)  # Client Coords
 posBOT = (420, 300)  # Client Coords
@@ -453,16 +544,16 @@ countSurch = 0.0
 surchTime = 0.0
 FAILPAUSE = 0  # SECONDS
 OFFERPAUSE = 0.0
-LOOPSLEEPDUR = random.uniform(0, 0.1) + 0.7
+LOOPSLEEPDUR = random.uniform(0, 0.1) + 0.4
 startTime = time()
 lastF5 = startTime
 offerTotal = 0
 failTotal = 0
 scanLoop = 3
 spamCount = 0
-allowedSecondsAFK = 1200
+allowedSecondsAFK = 600
 progressSpinner = ["/", "-", "\\", "|"]
-clickLoop = 15
+clickLoop = 3
 # includes size of borders and header
 tarkSize = (1920, 1080)
 tarkHANDLE = win32gui.FindWindow(None, "EscapeFromTarkov")
@@ -480,9 +571,21 @@ tarkHANDLE = win32gui.FindWindow(None, "EscapeFromTarkov")
 # ]
 # TODO all button
 imageDict = {
-    "offer": (cv2.imread("./search/purchaseClear.png", 0), 0.9, spamClickY, True, None,),
+    "offer": (
+        cv2.imread("./search/purchaseClear.png", 0),
+        0.9,
+        spamClickY,
+        True,
+        None,
+    ),
     "afk": (cv2.imread("./search/afkWarning.png", 0), 0.9, antiAFK2, False, None),
-    "fail": (cv2.imread("./search/NotFound1080.png", 0), 0.9, clickFail, True, None,),
+    "fail": (
+        cv2.imread("./search/NotFound1080.png", 0),
+        0.9,
+        clickFail,
+        True,
+        None,
+    ),
     "flea": (cv2.imread("./search/flea.png", 0), 0.9, None, True, None),
     "bot": (cv2.imread("./search/bot.png", 0), 0.9, found_bot, True, None),
     "mainMenu": (
@@ -506,82 +609,75 @@ imageDict = {
         False,
         (85, 35, 120, 50),
     ),
-    "hideoutEnter": (cv2.imread("./search/hideoutEnter.png",0),0.9,None,False,(900,20,1000,50))
+    "hideoutEnter": (
+        cv2.imread("./search/hideoutEnter.png", 0),
+        0.9,
+        None,
+        False,
+        (900, 20, 1000, 50),
+    ),
 }
+
 botDict = {
-    "42nd Signature Blend English Tea": cv2.imread(
-        "./search/sellItems/botItems/tea.png", 0
-    ),
-    "Car Battery": cv2.imread("./search/sellItems/botItems/carbattery.png", 0),
-    'Gunpowder "Eagle"': cv2.imread(
-        "./search/sellItems/botItems/greenpowder.png", 0
-    ),
-    "Pliers": cv2.imread("./search/sellItems/botItems/pliers.png", 0),
-    "Pack of sodium bicarbonate": cv2.imread(
-        "./search/sellItems/botItems/bic.png", 0
-    ),
-    "Salewa first aid kit": cv2.imread(
-        "./search/sellItems/botItems/salewa.png",0
-    ),
-    "Printer paper": cv2.imread("./search/sellItems/botItems/paper.png", 0),
-    "Analgin painkillers": cv2.imread("./search/sellItems/botItems/pk.png", 0),
-    "Expeditionary fuel tank": cv2.imread(
-        "./search/sellItems/botItems/bluefuel.png", 0
-    ),
-    "Grizzly medical kit": cv2.imread(
-        "./search/sellItems/botItems/grizzly.png", 0
-    ),
-    "Golden Start balm": cv2.imread(
-        "./search/sellItems/botItems/goldenstar.png", 0
-    ),
-    "5L propane tank": cv2.imread(
-        "./search/sellItems/botItems/propane.png", 0
-    ),
-    "Bolts": cv2.imread("./search/sellItems/botItems/bolts.png", 0),
-    "0.6 liter water bottle": cv2.imread(
-        "./search/sellItems/botItems/water.png",0
-    ),
-    "Broken GPhone X smartphone": cv2.imread(
-        "./search/sellItems/botItems/gpx.png", 0
-    ),
-    "Can of Majaica coffee beans": cv2.imread(
-        "./search/sellItems/botItems/coffee.png", 0
-    ),
-    "Gas analyzer": cv2.imread("./search/sellItems/botItems/gasan.png", 0),
-    "Immobilizing splint": cv2.imread(
-        "./search/sellItems/botItems/imsplint.png", 0
-    ),
-    "Alyonka chocolate bar": cv2.imread(
-        "./search/sellItems/botItems/chocolate.png", 0
-    ),
-    "Can of beef stew (Large)": cv2.imread(
-        "./search/sellItems/botItems/stewlarge.png", 0
-    ),
-    "Antique teapot": cv2.imread("./search/sellItems/botItems/teapot.png", 0),
-    "Golden neck chain": cv2.imread(
-        "./search/sellItems/botItems/goldchain.png", 0
-    ),
-    "Can of condensed milk": cv2.imread(
-        "./search/sellItems/botItems/conmilk.png", 0
-    ),
-    "Screwdriver": cv2.imread("./search/sellItems/botItems/screwdriver.png",0),
-    "Toilet paper": cv2.imread("./search/sellItems/botItems/tp.png", 0),
+    "0.6 liter water bottle": cv2.imread("./search/sellItems/botItems/water.png"),
+    "42nd Signature Blend English Tea": cv2.imread("./search/sellItems/botItems/tea.png"),
+    "5L propane tank": cv2.imread("./search/sellItems/botItems/propane.png"),
+    "AI-2 medkit": cv2.imread("./search/sellItems/botItems/cheese.png"),
+    "Alyonka chocolate bar": cv2.imread("./search/sellItems/botItems/chocolate.png"),
+    "Analgin painkillers": cv2.imread("./search/sellItems/botItems/pk.png"),
+    "Antique teapot": cv2.imread("./search/sellItems/botItems/teapot.png"),
+    "Bolts": cv2.imread("./search/sellItems/botItems/bolts.png"),
+    "Broken GPhone X smartphone": cv2.imread("./search/sellItems/botItems/gpx.png"),
+    "Bronze lion": cv2.imread("./search/sellItems/botItems/lion.png"),
+    "Can of beef stew (Large)": cv2.imread("./search/sellItems/botItems/stewlarge.png"),
+    "Can of condensed milk": cv2.imread("./search/sellItems/botItems/conmilk.png"),
+    "Can of Hot Rod energy drink": cv2.imread("./search/sellItems/botItems/hotrod.png"),
+    "Can of Majaica coffee beans": cv2.imread("./search/sellItems/botItems/coffee.png"),
+    "Car Battery": cv2.imread("./search/sellItems/botItems/carbattery.png"),
+    "Electric drill": cv2.imread("./search/sellItems/botItems/edrill.png"),
+    "Expeditionary fuel tank": cv2.imread("./search/sellItems/botItems/bluefuel.png"),
+    "Gas analyzer": cv2.imread("./search/sellItems/botItems/gasan.png"),
+    "Golden neck chain": cv2.imread("./search/sellItems/botItems/goldchain.png"),
+    "Gloden rooster": cv2.imread("./search/sellItems/botItems/cock.png"),
+    "Golden Star balm": cv2.imread("./search/sellItems/botItems/goldenstar.png"),
+    "Graphics Card": cv2.imread("./search/sellItems/botItems/gpu.png"),
+    "Grizzly medical kit": cv2.imread("./search/sellItems/botItems/grizzly.png"),
+    "Horse figurine": cv2.imread("./search/sellItems/botItems/horse.png"),
+    "Immobilizing splint": cv2.imread("./search/sellItems/botItems/imsplint.png"),
+    "Insulating tape": cv2.imread("./search/sellItems/botItems/tape.png"),
+    "Pack of sodium bicarbonate": cv2.imread("./search/sellItems/botItems/bic.png"),
+    "Pack of sugar": cv2.imread("./search/sellItems/botItems/sugar.png"),
+    "Pliers": cv2.imread("./search/sellItems/botItems/pliers.png"),
+    "Printer paper": cv2.imread("./search/sellItems/botItems/paper.png"),
+    "Red Rebel ice pick": cv2.imread("./search/sellItems/botItems/redrebel.png"),
+    "Salewa first aid kit": cv2.imread("./search/sellItems/botItems/salewa.png"),
+    "Screwdriver": cv2.imread("./search/sellItems/botItems/screwdriver.png"),
+    "Spark plug": cv2.imread("./search/sellItems/botItems/splug.png"),
+    "T-Shaped plug": cv2.imread("./search/sellItems/botItems/tplug.png"),
+    "Toilet paper": cv2.imread("./search/sellItems/botItems/tp.png"),
+    "Vaseline balm": cv2.imread("./search/sellItems/botItems/vaseline.png"),
+    "WD-40 (100ml)": cv2.imread("./search/sellItems/botItems/wd40.png"),
+    "Xenomorph sealing foam": cv2.imread("./search/sellItems/botItems/xeno.png"),
+    "Zibbo lighter": cv2.imread("./search/sellItems/botItems/zibbo.png"),
+    '"Fierce Hatchling" moonshine': cv2.imread("./search/sellItems/botItems/moonshine.png"),
+    'Gunpowder "Eagle"': cv2.imread("./search/sellItems/botItems/greenpowder.png"),
 }
+
+
 def main():
     global scanLoop
     sellItems = collect_sells("./search/sellItems/")
-    win32gui.MoveWindow(
-        tarkHANDLE, tarkPos[0], tarkPos[1], tarkSize[0], tarkSize[1], False
-    )
+    win32gui.MoveWindow(tarkHANDLE, tarkPos[0], tarkPos[1], tarkSize[0], tarkSize[1], False)
     win32gui.SetForegroundWindow(tarkHANDLE)
     sys.stdout.flush()
     afkTime = time()
     c1 = c2 = r = 0
     start = time()
+    fleaCheck()
     while True:
         checkPause()
-        if (time()-afkTime>allowedSecondsAFK):
-            afkTime = time() # reset afkTime to now
+        if time() - afkTime > allowedSecondsAFK:
+            afkTime = time()  # reset afkTime to now
             antiAFK()
         click_f5()
         before = time()
@@ -604,7 +700,7 @@ def main():
             #     callback=(spamClickY, antiAFK2, clickFail, found_bot),
             #     passRawPos=(True, False, True, True),
             # )
-            locate_images_keys(("offer", "afk", "fail", "bot"))
+            locate_images_keys(("bot", "offer", "afk", "fail"))
         dur = time() - before
         timePer = dur / scanLoop
         scanLoop = math.ceil(LOOPSLEEPDUR / timePer) + 1
@@ -618,8 +714,11 @@ def main():
             timePer,
             "dur",
             dur,
-            c1,c2
+            c1,
+            c2,
         )
+
+
 if __name__ == "__main__":
     main()
 # TODO LISTS
