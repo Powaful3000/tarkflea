@@ -146,9 +146,9 @@ def found_bot(pos: tuple):
     print(a - b, "yikes")
     print("read text:", text)
 
-    cv2.imshow("img", img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # cv2.imshow("img", img)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
     checkPause()
     found = "You must choose all:"
     if found in text:
@@ -447,12 +447,12 @@ def ctrlClick(rawPos=None):
     print("ctrlClick")
     x, y = rawPos
     win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
-    sleep(sleepDur)
+    sleep(0.01)
     click(x, y)
-    sleep(sleepDur)
+    sleep(0.01)
     win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
     click(1, 1)
-    sleep(sleepDur)
+    sleep(0.01)
 
 
 def collect_sells(dir: str):
@@ -466,30 +466,64 @@ def collect_sells(dir: str):
 
 
 def wait_until(key: str, whatdo=None):
+    ### whatdo is tuple of tuples where 0th element is function name and second element is is arguments tuple
+    ### ((function,(arg1,arg2)),(function2,(arg3,arg4)))
     while not locate_image_ndarray(*imageDict[key]):
         checkPause()
         if whatdo is not None:
+            print(whatdo)
             for doTup in whatdo:
+                print(doTup)
                 if len(doTup) > 1:
                     doTup[0](*doTup[1])
                 else:
                     doTup[0]()
 
 
-def saw_sleep_click(nickname, sleepRange, clickLoc):
+def saw_sleep_click(nickname, sleepRange, clickLoc, clickNum=1):
     print("".join(("saw", nickname)))
-    sleep(r(*sleepRange))
-    click(*clickLoc)
+    sleep(random.uniform(*sleepRange))
+    for _ in range(clickNum):
+        click(*clickLoc)
 
 
 def sell_items(searchArr) -> int:
     print("Selling Items")
-    wait_until("mainMenu", (press_key, (win32con.VK_ESCAPE, sleepDur)))
-    saw_sleep_click("menu", (0.5, 0.75), (1114, 1065))
-    wait_until("rapist", ((sleep, 0.5)))
-    saw_sleep_click("rapist", (0.25, 0.5), (871, 413))
-    wait_until("rapistLoaded", ((sleep, 0.5)))
-    saw_sleep_click("rapist menu", (0.25, 0.5), (240, 45))
+    # wait_until("mainMenu", (press_key, (win32con.VK_ESCAPE, sleepDur)))
+    wait_until(
+        "mainMenu",
+        (
+            (
+                press_key,
+                (win32con.VK_ESCAPE, sleepDur),
+            ),
+            (
+                sleep,
+                (0.05),
+            ),
+        ),
+    )
+    saw_sleep_click("menu", (1, 1.2), (1114, 1065), 3)
+    wait_until(
+        "rapist",
+        (
+            (
+                sleep,
+                (0.5,),
+            ),
+        ),
+    )
+    saw_sleep_click("rapist", (1, 1.2), (871, 413), 3)
+    wait_until(
+        "rapistLoaded",
+        (
+            (
+                sleep,
+                (0.5,),
+            ),
+        ),
+    )
+    saw_sleep_click("rapist menu", (1, 1.2), (240, 45), 10)
     total = 0
     region = (1265, 250, 1920, 1080)
     click(1613, 542)  # click / move mouse to where it scrolls
@@ -500,13 +534,8 @@ def sell_items(searchArr) -> int:
         while True:
             checkPause()
             if noneStreak >= 5:
-                print("noneStreak >= 3")
+                print("noneStreak >= 5")
                 break
-            if itemsSold % 20 == 0:
-                print("full sell page")
-                for _ in range(5):
-                    click(956, 182)  # Deal button
-                    sleep(sleepDur)
             for search in searchArr:
                 didFind = False
                 if locateImage(search[0], search[1], search[2], ctrlClick, True, region):
@@ -534,7 +563,7 @@ def sell_items(searchArr) -> int:
 
 
 autoSellBool = True
-posOffer = (1774, 178)  # Client Coords
+posOffer = (1774, 174)  # Client Coords
 posOK = (962, 567)  # Client Coords
 posBOT = (420, 300)  # Client Coords
 posF5 = (1411, 122)
@@ -545,7 +574,7 @@ countSurch = 0.0
 surchTime = 0.0
 FAILPAUSE = 0  # SECONDS
 OFFERPAUSE = 0.0
-LOOPSLEEPDUR = random.uniform(0, 0.1) + 0.4
+LOOPSLEEPDUR = random.uniform(0, 0.1) + 0.3
 startTime = time()
 lastF5 = startTime
 offerTotal = 0
@@ -673,11 +702,19 @@ def main():
     global scanLoop
     sellItems = collect_sells("./search/sellItems/")
     win32gui.MoveWindow(tarkHANDLE, tarkPos[0], tarkPos[1], tarkSize[0], tarkSize[1], False)
-    win32gui.SetForegroundWindow(tarkHANDLE)
+    for _ in range(5):
+        try:
+            win32gui.SetForegroundWindow(tarkHANDLE)
+            break
+        except Exception as e:
+            print("Exception", e)
+            print("Try Again :)")
+            sleep(0.2)
     sys.stdout.flush()
     afkTime = time()
     c1 = c2 = r = 0
     start = time()
+    locate_images_keys(("bot", "afk", "fail"))
     fleaCheck()
     while True:
         checkPause()
@@ -706,7 +743,7 @@ def main():
             #     passRawPos=(True, False, True, True),
             # )
             ## TODO parallelize
-            locate_images_keys(("bot", "offer", "afk", "fail"))
+            locate_images_keys(("bot", "afk", "fail", "offer"))
         dur = time() - before
         timePer = dur / scanLoop
         scanLoop = math.ceil(LOOPSLEEPDUR / timePer) + 1
