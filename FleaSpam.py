@@ -644,6 +644,7 @@ botDict = {
     "Horse figurine": cv2.imread("./search/sellItems/botItems/horse.png"),
     "Immobilizing splint": cv2.imread("./search/sellItems/botItems/imsplint.png"),
     "Insulating tape": cv2.imread("./search/sellItems/botItems/tape.png"),
+    "Morphine injector": cv2.imread("./search/sellItems/botItems/morphine.png"),
     "Pack of sodium bicarbonate": cv2.imread("./search/sellItems/botItems/bic.png"),
     "Pack of sugar": cv2.imread("./search/sellItems/botItems/sugar.png"),
     "Pliers": cv2.imread("./search/sellItems/botItems/pliers.png"),
