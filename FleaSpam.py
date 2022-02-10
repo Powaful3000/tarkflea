@@ -150,15 +150,16 @@ def found_bot(pos: tuple):
     print("read text:", text)
     index = -1
     found = "You must choose all:"
-    if found in text:
-        index = text.find(found)
-        if index == -1:
-            return
-        text = text[len(text) :]
+    if found not in text:
+        return
+    index = text.find(found)
+    if index == -1:
+        return
+    text = text[index + len(found) :].strip()
+    print("trimmed:", text)
 
     matches = get_close_matches(text, botDict.keys(), 1, 0.2)
     print("matches", matches)
-    ##
 
     if len(matches) == 0:
         print("none sadge")
@@ -175,22 +176,19 @@ def found_bot(pos: tuple):
     # cv2.imshow("match", match)
     # cv2.waitKey(0)
     # cv2.destroyAllWindows()
-    # multi-template match
+    ## multi-template match
     result = cv2.matchTemplate(fullImg, match, cv2.TM_CCOEFF_NORMED)  # img -> fullImg
     (yCoords, xCoords) = np.where(result >= 0.95)
     for (y, x) in zip(yCoords, xCoords):
         print("finna click", x, y)
         click(x, y)
         sleep(0.1)
-    # itemTemplate = cv2.imread(imgDir)
-    # h, w = itemTemplate.shape[:2]
-    # method = cv2.TM_CCOEFF_NORMED
-    # threshold = 0.99
-    # start = time()
-    # res = cv2.matchTemplate(img, itemTemplate, method)
-    # # TODO
+    ##
     sleep(0.1)
     xConfirm, yConfirm = (960, 1080 - pos[1] - 30)
+    print("CONFIRM", xConfirm, yConfirm)
+    click(xConfirm, yConfirm)
+    sleep(1)  # slow server😠
     return
 
 
@@ -328,6 +326,7 @@ def locateImages(file_loc: tuple, nickname: tuple, acc=(0.8), callback: tuple = 
                     break
 
 
+## TODO parallelize
 def locate_images_keys(keys: tuple):
     global surchTime, countSurch
     countSurch += 1
@@ -657,6 +656,7 @@ botDict = {
     "Toilet paper": cv2.imread("./search/sellItems/botItems/tp.png"),
     "Vaseline balm": cv2.imread("./search/sellItems/botItems/vaseline.png"),
     "WD-40 (100ml)": cv2.imread("./search/sellItems/botItems/wd40.png"),
+    "Wrench": cv2.imread("./search/sellItems/botItems/wrench.png"),
     "Xenomorph sealing foam": cv2.imread("./search/sellItems/botItems/xeno.png"),
     "Zibbo lighter": cv2.imread("./search/sellItems/botItems/zibbo.png"),
     '"Fierce Hatchling" moonshine': cv2.imread("./search/sellItems/botItems/moonshine.png"),
@@ -700,6 +700,7 @@ def main():
             #     callback=(spamClickY, antiAFK2, clickFail, found_bot),
             #     passRawPos=(True, False, True, True),
             # )
+            ## TODO parallelize
             locate_images_keys(("bot", "offer", "afk", "fail"))
         dur = time() - before
         timePer = dur / scanLoop
