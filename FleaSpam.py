@@ -466,14 +466,13 @@ def collect_sells(dir: str):
 
 
 def wait_until(key: str, whatdo=None):
+    print(key)
     ### whatdo is tuple of tuples where 0th element is function name and second element is is arguments tuple
     ### ((function,(arg1,arg2)),(function2,(arg3,arg4)))
     while not locate_image_ndarray(*imageDict[key]):
         checkPause()
         if whatdo is not None:
-            print(whatdo)
             for doTup in whatdo:
-                print(doTup)
                 if len(doTup) > 1:
                     doTup[0](*doTup[1])
                 else:
@@ -495,15 +494,19 @@ def sell_items(searchArr) -> int:
         (
             (
                 press_key,
-                (win32con.VK_ESCAPE, sleepDur),
+                (
+                    win32con.VK_ESCAPE,
+                    sleepDur,
+                ),
             ),
             (
                 sleep,
-                (0.05),
+                (0.05,),
             ),
         ),
     )
-    saw_sleep_click("menu", (1, 1.2), (1114, 1065), 3)
+    sleep(2)
+    saw_sleep_click("menu", (1, 1.2), (1114, 1065))
     wait_until(
         "rapist",
         (
@@ -513,7 +516,8 @@ def sell_items(searchArr) -> int:
             ),
         ),
     )
-    saw_sleep_click("rapist", (1, 1.2), (871, 413), 3)
+    sleep(2)
+    saw_sleep_click("rapist", (1, 1.2), (871, 413))
     wait_until(
         "rapistLoaded",
         (
@@ -523,6 +527,7 @@ def sell_items(searchArr) -> int:
             ),
         ),
     )
+    sleep(0.2)
     saw_sleep_click("rapist menu", (1, 1.2), (240, 45), 10)
     total = 0
     region = (1265, 250, 1920, 1080)
@@ -574,7 +579,7 @@ countSurch = 0.0
 surchTime = 0.0
 FAILPAUSE = 0  # SECONDS
 OFFERPAUSE = 0.0
-LOOPSLEEPDUR = random.uniform(0, 0.1) + 0.3
+LOOPSLEEPDUR = 0.25
 startTime = time()
 lastF5 = startTime
 offerTotal = 0
