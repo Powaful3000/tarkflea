@@ -120,50 +120,47 @@ def fast_screenshot(handle: int) -> np.ndarray:
 def found_bot(pos: tuple):
     # return
     print("Found bot X at pos", pos)
+    checkPause()
     text = matches = ""
     (x2, y1) = pos
     x2 += imageDict["bot"][0].shape[1]
-    # y1 += 70
     x1 = 1920 - x2
-    y2 = y1 + 100
-    # ocrRegion = (x1, y1, x2, y2)
+    y2 = y1 + 95
+    y1 += 70  ## +70 = trim top off
+    x1 += 15
+    x2 -= 15
     fullImg = fast_screenshot(tarkHANDLE)
-    # fullImg = cv2.cvtColor(fullImg, cv2.COLOR_BGR2GRAY)
     img = fullImg[y1:y2, x1:x2]
-    cv2.imwrite("asd.JPG", img)
-
     #####Post processing for accuracy
-
     img = cv2.resize(img, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+    # img = cv2.bilateralFilter(img, 5, 50, 50)
     img = cv2.bilateralFilter(img, 9, 75, 75)
-    # img = cv2.GaussianBlur(img, (3, 3), 0)
-    # img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-    # img = cv2.adaptiveThreshold(
-    #     img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 21, 0
-    # )
-    # cv2.imshow("img", img)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 17, 0)
+    img = cv2.bilateralFilter(img, 9, 75, 75)
     #####
 
-    text = pytesseract.image_to_string(img, lang="bender")
+    b = time()
+    text = pytesseract.image_to_string(img, lang="bender", config="--psm 11")
+    a = time()
+    print(a - b, "yikes")
     print("read text:", text)
-    index = -1
+
+    cv2.imshow("img", img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    checkPause()
     found = "You must choose all:"
-    if found not in text:
-        return
-    index = text.find(found)
-    if index == -1:
-        return
-    text = text[index + len(found) :].strip()
-    print("trimmed:", text)
+    if found in text:
+        index = text.find(found)
+        text = text[index + len(found) :].strip()
+        print("trimmed:", text)
 
-    matches = get_close_matches(text, botDict.keys(), 1, 0.2)
-    print("matches", matches)
-
+    matches = get_close_matches(text, botDict.keys(), 1, 0.8)  # tesseract be like: 20% error👿
     if len(matches) == 0:
         print("none sadge")
         return
+    print("matches", matches)
     match = botDict[matches[0]]
     # match = cv2.cvtColor(match, cv2.COLOR_BGR2RGB)
     # print(match) # big output np array
@@ -177,10 +174,15 @@ def found_bot(pos: tuple):
     # cv2.waitKey(0)
     # cv2.destroyAllWindows()
     ## multi-template match
+    checkPause()
     result = cv2.matchTemplate(fullImg, match, cv2.TM_CCOEFF_NORMED)  # img -> fullImg
+    clicked = []  # list of coord tuples
     (yCoords, xCoords) = np.where(result >= 0.95)
     for (y, x) in zip(yCoords, xCoords):
+        if (x, y) in clicked:
+            continue
         print("finna click", x, y)
+        clicked.append((x, y))  # coord tuple
         click(x, y)
         sleep(0.1)
     ##
@@ -188,7 +190,7 @@ def found_bot(pos: tuple):
     xConfirm, yConfirm = (960, 1080 - pos[1] - 30)
     print("CONFIRM", xConfirm, yConfirm)
     click(xConfirm, yConfirm)
-    sleep(1)  # slow server😠
+    sleep(2)  # slow server😠
     return
 
 
@@ -468,7 +470,7 @@ def wait_until(key: str, whatdo=None):
         checkPause()
         if whatdo is not None:
             for doTup in whatdo:
-                if len(doTup[0]) > 1:
+                if len(doTup) > 1:
                     doTup[0](*doTup[1])
                 else:
                     doTup[0]()
@@ -531,7 +533,7 @@ def sell_items(searchArr) -> int:
     return total
 
 
-autoSellBool = False
+autoSellBool = True
 posOffer = (1774, 178)  # Client Coords
 posOK = (962, 567)  # Client Coords
 posBOT = (420, 300)  # Client Coords
@@ -635,6 +637,7 @@ botDict = {
     "Car Battery": cv2.imread("./search/sellItems/botItems/carbattery.png"),
     "Electric drill": cv2.imread("./search/sellItems/botItems/edrill.png"),
     "Expeditionary fuel tank": cv2.imread("./search/sellItems/botItems/bluefuel.png"),
+    "Freeman crowbar": cv2.imread("./search/sellItems/botItems/crowbar.png"),
     "Gas analyzer": cv2.imread("./search/sellItems/botItems/gasan.png"),
     "Golden neck chain": cv2.imread("./search/sellItems/botItems/goldchain.png"),
     "Gloden rooster": cv2.imread("./search/sellItems/botItems/cock.png"),
@@ -653,6 +656,7 @@ botDict = {
     "Salewa first aid kit": cv2.imread("./search/sellItems/botItems/salewa.png"),
     "Screwdriver": cv2.imread("./search/sellItems/botItems/screwdriver.png"),
     "Spark plug": cv2.imread("./search/sellItems/botItems/splug.png"),
+    "Strike Cigarettes": cv2.imread("./search/sellItems/botItems/strike.png"),
     "T-Shaped plug": cv2.imread("./search/sellItems/botItems/tplug.png"),
     "Toilet paper": cv2.imread("./search/sellItems/botItems/tp.png"),
     "Vaseline balm": cv2.imread("./search/sellItems/botItems/vaseline.png"),
@@ -677,9 +681,9 @@ def main():
     fleaCheck()
     while True:
         checkPause()
-        if time() - afkTime > allowedSecondsAFK:
-            afkTime = time()  # reset afkTime to now
-            antiAFK()
+        # if time() - afkTime > allowedSecondsAFK:
+        #     afkTime = time()  # reset afkTime to now
+        #     antiAFK()
         click_f5()
         before = time()
         for _ in range(scanLoop):
