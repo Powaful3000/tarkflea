@@ -67,22 +67,25 @@ def spamClickY(rawPos=None):
         # sleep(0.01)
         press_key(0x59, sleepDur)
     after = time()
-    timePer = (after - before) / clickLoop
+    totalTime = after - before
+    timePer = totalTime / clickLoop
     clickLoop = math.floor(LOOPSLEEPDUR / timePer) + 1
-    sleep(OFFERPAUSE)
+    print(totalTime, timePer, clickLoop)
+    # sleep(OFFERPAUSE)
 
 
 def clickFail(rawPos=None):
     global failTotal
     failTotal += 1
-    if rawPos is None:
-        x, y = posOK[0], posOK[1]
-    else:
-        x, y = rawPos
-        x += 10
-        y += 10
-    click(x, y)
-    sleep(max(FAILPAUSE, 0.2))
+    # if rawPos is None:
+    #     x, y = posOK[0], posOK[1]
+    # else:
+    #     x, y = rawPos
+    #     x += 10
+    #     y += 10
+    # click(x, y)
+    press_key(win32con.VK_ESCAPE, sleepDur)  # realized i can press esc instead of clicking ok :)
+    ## sleep(max(FAILPAUSE, 0.2))
 
 
 def fast_screenshot(handle: int) -> np.ndarray:
@@ -123,7 +126,7 @@ def found_bot(pos: tuple):
     checkPause()
     text = matches = ""
     (x2, y1) = pos
-    x2 += imageDict["bot"][0].shape[1]
+    x2 += imageDict["bot"][0].shape[1]  # add width to x2
     x1 = 1920 - x2
     y2 = y1 + 95
     y1 += 70  ## +70 = trim top off
@@ -175,9 +178,11 @@ def found_bot(pos: tuple):
     # cv2.destroyAllWindows()
     ## multi-template match
     checkPause()
+    before = time()
     result = cv2.matchTemplate(fullImg, match, cv2.TM_CCOEFF_NORMED)  # img -> fullImg
+    print(time() - before)
     clicked = []  # list of coord tuples
-    (yCoords, xCoords) = np.where(result >= 0.95)
+    (yCoords, xCoords) = np.where(result >= 0.97)
     for (y, x) in zip(yCoords, xCoords):
         if (x, y) in clicked:
             continue
@@ -202,7 +207,9 @@ def imagesearcharea(smallLoc, precision=0.8, big=None, region=None):
     template = cv2.imread(smallLoc, 0)
     if template is None:
         raise FileNotFoundError("Image file not found: {}".format(smallLoc))
+    before = time()
     res = cv2.matchTemplate(img_gray, template, cv2.TM_CCOEFF_NORMED)
+    print("imagesearcharea", time() - before)
     max_val: float
     max_loc: list
     _, max_val, _, max_loc = cv2.minMaxLoc(res)
@@ -224,17 +231,20 @@ def image_search_area_ndarray(
     # template
     img_rgb = np.array(screenshot)
     img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2GRAY)
+    before = time()
     res = cv2.matchTemplate(
         img_gray,
         template,
         cv2.TM_CCOEFF_NORMED,
     )
+    print("ndarray", time() - before)
     max_val: float
     max_loc: list
     _, max_val, _, max_loc = cv2.minMaxLoc(res)
     if region is not None:
-        max_loc[0] += region[0]
-        max_loc[1] += region[1]
+        # max_loc[0] += region[0]
+        # max_loc[1] += region[1]
+        return (max_loc[0] + region[0], max_loc[1] + region[1])
     if max_val < precision:
         return [-1, -1]
     return max_loc
@@ -344,6 +354,7 @@ def locate_images_keys(keys: tuple):
         # image, precision, callback, passArgs, region = dictImage
         # print(key, precision, callback, passArgs, region)
         dictImage = imageDict[key]
+        print(key, " took:  ", end="")
         rawPos = image_search_area_ndarray(dictImage[0], dictImage[1], img, dictImage[4])
         if rawPos[0] != -1 and dictImage[2] is not None:
             if dictImage[3]:
@@ -436,6 +447,7 @@ def fleaCheck():
         sleep(random.uniform(0.5, 0.7))
         click(1260, 1060)  # flea button
         sleep(random.uniform(1, 2))
+        click_f5()
 
 
 def antiAFK2():
@@ -447,12 +459,11 @@ def ctrlClick(rawPos=None):
     print("ctrlClick")
     x, y = rawPos
     win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
-    sleep(0.01)
     click(x, y)
-    sleep(0.01)
+    click(x, y)
+    click(x, y)
     win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
-    click(1, 1)
-    sleep(0.01)
+    click(1250, 1140)
 
 
 def collect_sells(dir: str):
@@ -486,9 +497,11 @@ def saw_sleep_click(nickname, sleepRange, clickLoc, clickNum=1):
         click(*clickLoc)
 
 
+### TODO: batch search and click items, instead of search click loop
 def sell_items(searchArr) -> int:
     print("Selling Items")
     # wait_until("mainMenu", (press_key, (win32con.VK_ESCAPE, sleepDur)))
+    locate_images_keys(("bot",))
     wait_until(
         "mainMenu",
         (
@@ -505,7 +518,8 @@ def sell_items(searchArr) -> int:
             ),
         ),
     )
-    sleep(2)
+    sleep(1)
+    locate_images_keys(("bot",))
     saw_sleep_click("menu", (1, 1.2), (1114, 1065))
     wait_until(
         "rapist",
@@ -516,7 +530,8 @@ def sell_items(searchArr) -> int:
             ),
         ),
     )
-    sleep(2)
+    sleep(1)
+    locate_images_keys(("bot",))
     saw_sleep_click("rapist", (1, 1.2), (871, 413))
     wait_until(
         "rapistLoaded",
@@ -527,7 +542,8 @@ def sell_items(searchArr) -> int:
             ),
         ),
     )
-    sleep(0.2)
+    sleep(1)
+    locate_images_keys(("bot",))
     saw_sleep_click("rapist menu", (1, 1.2), (240, 45), 10)
     total = 0
     region = (1265, 250, 1920, 1080)
@@ -536,6 +552,7 @@ def sell_items(searchArr) -> int:
         noneStreak = 0
         didFind = False
         itemsSold = 0
+        locate_images_keys(("bot",))
         while True:
             checkPause()
             if noneStreak >= 5:
@@ -547,6 +564,9 @@ def sell_items(searchArr) -> int:
                     itemsSold += 1
                     total += 1
                     didFind = True
+                    if (itemsSold % 20) == 0:
+                        print(itemsSold, itemsSold % 20, "click deal :)")
+                        click(956, 182)  # Deal button
             if didFind:
                 noneStreak = 0
             else:
@@ -563,11 +583,12 @@ def sell_items(searchArr) -> int:
             win32api.mouse_event(win32con.MOUSEEVENTF_WHEEL, 1613, 542, -1, 0)  # Scroll down
             sleep(sleepDur)
     click(956, 182)  # Deal button
-    # fleaCheck()
     return total
 
 
 autoSellBool = True
+fleaCheckFrequency = 50
+itemSellFrequency = 1000
 posOffer = (1774, 174)  # Client Coords
 posOK = (962, 567)  # Client Coords
 posBOT = (420, 300)  # Client Coords
@@ -611,9 +632,9 @@ imageDict = {
         0.9,
         spamClickY,
         True,
-        None,
+        None,  # (1700, 150, 1840, 1000)
     ),
-    "afk": (cv2.imread("./search/afkWarning.png", 0), 0.9, antiAFK2, False, None),
+    "afk": (cv2.imread("./search/afkWarning.png", 0), 0.9, antiAFK2, False, None),  # (710, 450, 800, 480)
     "fail": (
         cv2.imread("./search/NotFound1080.png", 0),
         0.9,
@@ -661,6 +682,7 @@ botDict = {
     "Alyonka chocolate bar": cv2.imread("./search/sellItems/botItems/chocolate.png"),
     "Analgin painkillers": cv2.imread("./search/sellItems/botItems/pk.png"),
     "Antique teapot": cv2.imread("./search/sellItems/botItems/teapot.png"),
+    "Aseptic bandage": cv2.imread("./search/sellItems/botItems/bandage.png"),
     "Bolts": cv2.imread("./search/sellItems/botItems/bolts.png"),
     "Broken GPhone X smartphone": cv2.imread("./search/sellItems/botItems/gpx.png"),
     "Bronze lion": cv2.imread("./search/sellItems/botItems/lion.png"),
@@ -702,7 +724,7 @@ botDict = {
     'Gunpowder "Eagle"': cv2.imread("./search/sellItems/botItems/greenpowder.png"),
 }
 
-
+### TODO: somehow batch search click purchase buttons + parallelize the four main template searches
 def main():
     global scanLoop
     sellItems = collect_sells("./search/sellItems/")
@@ -718,6 +740,7 @@ def main():
     sys.stdout.flush()
     afkTime = time()
     c1 = c2 = r = 0
+    autoSellFrequency = itemSellFrequency / fleaCheckFrequency
     start = time()
     locate_images_keys(("bot", "afk", "fail"))
     fleaCheck()
@@ -731,11 +754,11 @@ def main():
         for _ in range(scanLoop):
             c1 += 1
             checkPause()
-            if c1 == 50:
+            if c1 == fleaCheckFrequency:
                 # check for flea
                 c1 = 0
                 c2 += 1
-                if c2 == 10:
+                if c2 == autoSellFrequency:
                     if autoSellBool:
                         r += sell_items(sellItems)
                     c1 = c2 = 0
