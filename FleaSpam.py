@@ -354,7 +354,7 @@ def locate_images_keys(keys: tuple):
         # image, precision, callback, passArgs, region = dictImage
         # print(key, precision, callback, passArgs, region)
         dictImage = imageDict[key]
-        print(key, " took:  ", end="")
+        # print(key, " took:  ", end="")
         rawPos = image_search_area_ndarray(dictImage[0], dictImage[1], img, dictImage[4])
         if rawPos[0] != -1 and dictImage[2] is not None:
             if dictImage[3]:
