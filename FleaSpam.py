@@ -13,6 +13,7 @@ import numpy as np
 import cv2
 import math
 from difflib import get_close_matches
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 def computeAvgOF() -> str:
@@ -77,15 +78,43 @@ def spamClickY(rawPos=None):
 def clickFail(rawPos=None):
     global failTotal
     failTotal += 1
-    # if rawPos is None:
-    #     x, y = posOK[0], posOK[1]
-    # else:
-    #     x, y = rawPos
-    #     x += 10
-    #     y += 10
-    # click(x, y)
-    press_key(win32con.VK_ESCAPE, sleepDur)  # realized i can press esc instead of clicking ok :)
+    if rawPos is None:
+        x, y = posOK[0], posOK[1]
+    else:
+        x, y = rawPos
+        x += 10
+        y += 10
+    click(x, y)
+    # press_key(win32con.VK_ESCAPE, sleepDur)  # realized i can press esc instead of clicking ok :)
     ## sleep(max(FAILPAUSE, 0.2))
+
+
+def fastScreenshot() -> Image.Image:
+    start = time()
+    left, top, right, bot = win32gui.GetWindowRect(tarkHANDLE)
+    w = right - left
+    h = bot - top
+    hdesktop = win32gui.GetDesktopWindow()
+    hwndDC = win32gui.GetWindowDC(hdesktop)
+    mfcDC = win32ui.CreateDCFromHandle(hwndDC)
+    saveDC = mfcDC.CreateCompatibleDC()
+    saveBitMap = win32ui.CreateBitmap()
+    saveBitMap.CreateCompatibleBitmap(mfcDC, w, h)
+    saveDC.SelectObject(saveBitMap)
+    saveDC.BitBlt((0, 0), (w, h), mfcDC, (left, top), win32con.SRCCOPY)
+    bmpinfo = saveBitMap.GetInfo()
+    bmpstr = saveBitMap.GetBitmapBits(True)
+    im = Image.frombuffer("RGB", (bmpinfo["bmWidth"], bmpinfo["bmHeight"]), bmpstr, "raw", "BGRX", 0, 1)
+    win32gui.DeleteObject(saveBitMap.GetHandle())
+    saveDC.DeleteDC()
+    mfcDC.DeleteDC()
+    win32gui.ReleaseDC(hdesktop, hwndDC)
+    # if result == None:
+    #     #PrintWindow Succeeded
+    #     im.save("test.png",0)
+    end = time()
+    # print("fastScreenshot took", end - start)
+    return im
 
 
 def fast_screenshot(handle: int) -> np.ndarray:
@@ -109,15 +138,16 @@ def fast_screenshot(handle: int) -> np.ndarray:
     saveDC.DeleteDC()
     mfcDC.DeleteDC()
     win32gui.ReleaseDC(hdesktop, hwndDC)
+    imgView = img.view()
     # drop the alpha channel to work with cv.matchTemplate()
-    img = img[:, :, :3]
+    imgView = imgView[:, :, :3]
     # make image C_CONTIGUOUS to avoid errors with cv.rectangle()
-    # img = np.ascontiguousarray(img)
+    imgView = np.ascontiguousarray(imgView)
     # make grey for my template match
     # img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
     end = time()
-    print("fast_screenshot took", end - start)
-    return img
+    # print("fast_screenshot took", end - start)
+    return imgView
 
 
 def found_bot(pos: tuple):
@@ -135,7 +165,11 @@ def found_bot(pos: tuple):
     fullImg = fast_screenshot(tarkHANDLE)
     img = fullImg[y1:y2, x1:x2]
     #####Post processing for accuracy
+    # img[np.where((img > [0, 0, 50]).all(axis=2))] = [0, 0, 0] #red
+    # img[np.where((img > [40, 0, 0]).all(axis=2))] = [255, 255, 255] #blue
     img = cv2.resize(img, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
     # img = cv2.bilateralFilter(img, 5, 50, 50)
     img = cv2.bilateralFilter(img, 9, 75, 75)
     img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
@@ -148,10 +182,7 @@ def found_bot(pos: tuple):
     a = time()
     print(a - b, "yikes")
     print("read text:", text)
-
-    # cv2.imshow("img", img)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
+    cv2.imshow(text, img)
     checkPause()
     found = "You must choose all:"
     if found in text:
@@ -164,7 +195,7 @@ def found_bot(pos: tuple):
         print("none sadge")
         return
     print("matches", matches)
-    match = botDict[matches[0]]
+    match = botDict[matches[0]].view()
     # match = cv2.cvtColor(match, cv2.COLOR_BGR2RGB)
     # print(match) # big output np array
     # print(type(fullImg), type(match))
@@ -183,6 +214,7 @@ def found_bot(pos: tuple):
     print(time() - before)
     clicked = []  # list of coord tuples
     (yCoords, xCoords) = np.where(result >= 0.97)
+    sleep(0.2)
     for (y, x) in zip(yCoords, xCoords):
         if (x, y) in clicked:
             continue
@@ -195,7 +227,7 @@ def found_bot(pos: tuple):
     xConfirm, yConfirm = (960, 1080 - pos[1] - 30)
     print("CONFIRM", xConfirm, yConfirm)
     click(xConfirm, yConfirm)
-    sleep(2)  # slow server😠
+    sleep(1)  # slow server😠
     return
 
 
@@ -222,22 +254,14 @@ def imagesearcharea(smallLoc, precision=0.8, big=None, region=None):
     return max_loc
 
 
-def image_search_area_ndarray(
-    template: np.ndarray,
-    precision=0.8,
-    screenshot: np.ndarray = None,
-    region=None,
-):
-    # template
-    img_rgb = np.array(screenshot)
-    img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2GRAY)
-    before = time()
+def image_search_area_ndarray(template: np.ndarray, precision=0.8, screenshot: np.ndarray = None, region=None):
+    img_gray = cv2.cvtColor(screenshot, cv2.COLOR_BGR2GRAY)
+    # before = time()
     res = cv2.matchTemplate(
         img_gray,
         template,
         cv2.TM_CCOEFF_NORMED,
     )
-    print("ndarray", time() - before)
     max_val: float
     max_loc: list
     _, max_val, _, max_loc = cv2.minMaxLoc(res)
@@ -338,13 +362,45 @@ def locateImages(file_loc: tuple, nickname: tuple, acc=(0.8), callback: tuple = 
                     break
 
 
+def plik_work(img, key) -> bool:
+    # view the first ndarray (template) instead of copying :)
+    template = imageDict[key][0].view()
+    precision, callback, passArgs, region = imageDict[key][1:]
+    rawPos = image_search_area_ndarray(template, precision, img, region)
+    if rawPos[0] != -1 and callback is not None:
+        print("saw", key)
+        if passArgs:
+            callback(rawPos)
+        else:
+            callback()
+        return True
+    return False
+
+
+def parallel_locate_image_keys(executor, keys: tuple):
+    # print("parallel_locate_image_keys")
+    checkPause()
+    # np.ndarray
+    img = fast_screenshot(tarkHANDLE)
+    imgView = img.view()
+    futures = {executor.submit(plik_work, img, key): key for key in keys}
+    # executor.map(plik_work, ((imgView, key) for key in keys))
+    # for future in as_completed(futures, 1):
+    for future in futures:
+        # waits for first,then second,then third,then fourth
+        # doesnt prevent them from ending early
+        checkPause()
+        future.result()
+
+
 ## TODO parallelize
 def locate_images_keys(keys: tuple):
     global surchTime, countSurch
     countSurch += 1
     before = time()
     # img = machine.get()
-    img = fastScreenshot()
+    # ndarray
+    img = fast_screenshot(tarkHANDLE)  # was fastScreenshot (PIL.Image)
     # print("Image Type1:", type(img))
     after = time()
     # print(after-before, "fastScreenshot")
@@ -353,14 +409,15 @@ def locate_images_keys(keys: tuple):
         checkPause()
         # image, precision, callback, passArgs, region = dictImage
         # print(key, precision, callback, passArgs, region)
-        dictImage = imageDict[key]
         # print(key, " took:  ", end="")
-        rawPos = image_search_area_ndarray(dictImage[0], dictImage[1], img, dictImage[4])
-        if rawPos[0] != -1 and dictImage[2] is not None:
-            if dictImage[3]:
-                dictImage[2](rawPos)
+        image = imageDict[key][0].view()
+        precision, callback, passArgs, region = imageDict[key][1:]
+        rawPos = image_search_area_ndarray(imageDict[key][0].view(), precision, img, region)
+        if rawPos[0] != -1 and callback is not None:
+            if passArgs:
+                callback(rawPos)
             else:
-                dictImage[2]()
+                callback()
                 break
 
 
@@ -376,65 +433,9 @@ def checkPause():
     return False
 
 
-def fastScreenshot() -> Image.Image:
-    start = time()
-    left, top, right, bot = win32gui.GetWindowRect(tarkHANDLE)
-    w = right - left
-    h = bot - top
-    hdesktop = win32gui.GetDesktopWindow()
-    hwndDC = win32gui.GetWindowDC(hdesktop)
-    mfcDC = win32ui.CreateDCFromHandle(hwndDC)
-    saveDC = mfcDC.CreateCompatibleDC()
-    saveBitMap = win32ui.CreateBitmap()
-    saveBitMap.CreateCompatibleBitmap(mfcDC, w, h)
-    saveDC.SelectObject(saveBitMap)
-    saveDC.BitBlt((0, 0), (w, h), mfcDC, (left, top), win32con.SRCCOPY)
-    bmpinfo = saveBitMap.GetInfo()
-    bmpstr = saveBitMap.GetBitmapBits(True)
-    im = Image.frombuffer("RGB", (bmpinfo["bmWidth"], bmpinfo["bmHeight"]), bmpstr, "raw", "BGRX", 0, 1)
-    win32gui.DeleteObject(saveBitMap.GetHandle())
-    saveDC.DeleteDC()
-    mfcDC.DeleteDC()
-    win32gui.ReleaseDC(hdesktop, hwndDC)
-    # if result == None:
-    #     #PrintWindow Succeeded
-    #     im.save("test.png",0)
-    end = time()
-    # print("fastScreenshot took", end - start)
-    return im
-
-
 def doJumping():
     if random.uniform(0, 1) < 0.5:
         press_key(0x20, sleepDur)  # Spacebar
-
-
-def antiAFK():
-    print("Begin antiAFK")
-    loop = 0
-    sleep(random.uniform(2, 3))
-    click(76, 1064)  # Main Menu Button
-    sleep(random.uniform(2, 3))
-    click(954, 868)  # Hideout Button
-    sleep(random.uniform(5, 6))
-    while not locate_image_ndarray(*imageDict["hideoutEnter"]):
-        print("Waiting for Enter button", progressSpinner[loop % 4], end="\r")
-        loop += 1
-        sleep(0.1)
-    sleep(1)
-    press_key(win32con.VK_RETURN, sleepDur)
-    sleep(random.uniform(3, 4))
-    doJumping()
-    press_key(0x57, random.uniform(2, 3))  # W
-    doJumping()
-    press_key(0x53, random.uniform(2, 3))  # S
-    doJumping()
-    press_key(win32con.VK_ESCAPE, sleepDur)
-    sleep(random.uniform(1, 2))
-    press_key(win32con.VK_ESCAPE, sleepDur)
-    sleep(random.uniform(1, 2))
-    click(1250, 1055)  # Flea Market Button
-    sleep(random.uniform(1, 2))
 
 
 def fleaCheck():
@@ -480,7 +481,7 @@ def wait_until(key: str, whatdo=None):
     print(key)
     ### whatdo is tuple of tuples where 0th element is function name and second element is is arguments tuple
     ### ((function,(arg1,arg2)),(function2,(arg3,arg4)))
-    while not locate_image_ndarray(*imageDict[key]):
+    while not locate_image_ndarray(imageDict[key][0].view(), *imageDict[key][1:]):
         checkPause()
         if whatdo is not None:
             for doTup in whatdo:
@@ -587,91 +588,53 @@ def sell_items(searchArr) -> int:
 
 
 autoSellBool = True
-fleaCheckFrequency = 50
-itemSellFrequency = 1000
+fleaCheckFrequency = 500
+itemSellFrequency = 10000
 posOffer = (1774, 174)  # Client Coords
 posOK = (962, 567)  # Client Coords
 posBOT = (420, 300)  # Client Coords
 posF5 = (1411, 122)
 tarkPos = (0, 0)  # doesnt really matter
-ScriptEnabled = True
 sleepDur = 0.00001
 countSurch = 0.0
 surchTime = 0.0
 FAILPAUSE = 0  # SECONDS
 OFFERPAUSE = 0.0
-LOOPSLEEPDUR = 0.25
+LOOPSLEEPDUR = 0.7
 startTime = time()
 lastF5 = startTime
 offerTotal = 0
 failTotal = 0
 scanLoop = 3
 spamCount = 0
-allowedSecondsAFK = 600
 progressSpinner = ["/", "-", "\\", "|"]
 clickLoop = 3
 # includes size of borders and header
 tarkSize = (1920, 1080)
 tarkHANDLE = win32gui.FindWindow(None, "EscapeFromTarkov")
-# , "./search/BOT.png"   , "BOT"    , 0.9
-# images = [
-#     (
-#         "./search/purchaseClear.png",
-#         "./search/afkWarning.png",
-#         "./search/NotFound1080.png",
-#     ),
-#     ("offer", "afk", "fail"),
-#     (0.9, 0.9, 0.9),
-#     (spamClickY, antiAFK2, clickFail),
-#     (True, False, True),
-# ]
-# TODO all button
+# np.ndarray
+templateStore = {
+    "offer": cv2.imread("./search/purchaseClear.png", 0),
+    "afk": cv2.imread("./search/afkWarning.png", 0),
+    "fail": cv2.imread("./search/NotFound1080.png", 0),
+    "flea": cv2.imread("./search/flea.png", 0),
+    "bot": cv2.imread("./search/bot.png", 0),
+    "mainMenu": cv2.imread("./search/mainMenu.png", 0),
+    "rapist": cv2.imread("./search/rapist.png", 0),
+    "rapistLoaded": cv2.imread("./search/rapistLoaded.png", 0),
+    "hideoutEnter": cv2.imread("./search/hideoutEnter.png", 0),
+}
+# np.ndarray, precision, callback, passArgs, region, multiMatch
 imageDict = {
-    "offer": (
-        cv2.imread("./search/purchaseClear.png", 0),
-        0.9,
-        spamClickY,
-        True,
-        None,  # (1700, 150, 1840, 1000)
-    ),
-    "afk": (cv2.imread("./search/afkWarning.png", 0), 0.9, antiAFK2, False, None),  # (710, 450, 800, 480)
-    "fail": (
-        cv2.imread("./search/NotFound1080.png", 0),
-        0.9,
-        clickFail,
-        True,
-        None,
-    ),
-    "flea": (cv2.imread("./search/flea.png", 0), 0.9, None, True, None),
-    "bot": (cv2.imread("./search/bot.png", 0), 0.9, found_bot, True, None),
-    "mainMenu": (
-        cv2.imread("./search/mainMenu.png", 0),
-        0.9,
-        None,
-        False,
-        (10, 1050, 45, 1075),
-    ),
-    "rapist": (
-        cv2.imread("./search/rapist.png", 0),
-        0.9,
-        None,
-        False,
-        (850, 380, 870, 402),
-    ),
-    "rapistLoaded": (
-        cv2.imread("./search/rapistLoaded.png", 0),
-        0.9,
-        None,
-        False,
-        (85, 35, 120, 50),
-    ),
-    "hideoutEnter": (
-        cv2.imread("./search/hideoutEnter.png", 0),
-        0.9,
-        None,
-        False,
-        (900, 20, 1000, 50),
-    ),
+    "offer": (templateStore["offer"].view(), 0.95, spamClickY, True, None),  # (1700, 145, 1850, 1000)
+    "afk": (templateStore["afk"].view(), 0.95, antiAFK2, False, None),  # (710, 450, 800, 480)
+    "fail": (templateStore["fail"].view(), 0.95, clickFail, True, None),
+    "flea": (templateStore["flea"].view(), 0.95, None, True, None),
+    "bot": (templateStore["bot"].view(), 0.95, found_bot, True, None),
+    "mainMenu": (templateStore["mainMenu"].view(), 0.95, None, False, (10, 1050, 45, 1075)),
+    "rapist": (templateStore["rapist"].view(), 0.95, None, False, (850, 380, 870, 402)),
+    "rapistLoaded": (templateStore["rapistLoaded"].view(), 0.95, None, False, (85, 35, 120, 50)),
+    "hideoutEnter": (templateStore["hideoutEnter"].view(), 0.95, None, False, (900, 20, 1000, 50)),
 }
 
 botDict = {
@@ -744,50 +707,46 @@ def main():
     start = time()
     locate_images_keys(("bot", "afk", "fail"))
     fleaCheck()
-    while True:
-        checkPause()
-        # if time() - afkTime > allowedSecondsAFK:
-        #     afkTime = time()  # reset afkTime to now
-        #     antiAFK()
-        click_f5()
-        before = time()
-        for _ in range(scanLoop):
-            c1 += 1
+    with ThreadPoolExecutor() as executor:
+        while True:
             checkPause()
-            if c1 == fleaCheckFrequency:
-                # check for flea
-                c1 = 0
-                c2 += 1
-                if c2 == autoSellFrequency:
-                    if autoSellBool:
-                        r += sell_items(sellItems)
-                    c1 = c2 = 0
-                fleaCheck()
-            # locateImages(
-            #     file_loc=images[0],
-            #     nickname=images[1],
-            #     acc=images[2],
-            #     callback=(spamClickY, antiAFK2, clickFail, found_bot),
-            #     passRawPos=(True, False, True, True),
-            # )
-            ## TODO parallelize
-            locate_images_keys(("bot", "afk", "fail", "offer"))
-        dur = time() - before
-        timePer = dur / scanLoop
-        scanLoop = math.ceil(LOOPSLEEPDUR / timePer) + 1
-        # sleep(max((LOOPSLEEPDUR - (dur)), 0))
-        print(
-            "Rotated",
-            r,
-            time() - start,
-            scanLoop,
-            "timePer",
-            timePer,
-            "dur",
-            dur,
-            c1,
-            c2,
-        )
+            click_f5()
+            before = time()
+            for _ in range(scanLoop):
+                c1 += 1
+                checkPause()
+                if c1 == fleaCheckFrequency:
+                    # check for flea
+                    c1 = 0
+                    c2 += 1
+                    if c2 == autoSellFrequency:
+                        if autoSellBool:
+                            r += sell_items(sellItems)
+                        c1 = c2 = 0
+                    fleaCheck()
+                # locate_images_keys(("bot", "afk", "fail", "offer"))
+                checkPause()
+                parallel_locate_image_keys(executor, ("bot", "afk", "fail", "offer"))
+                checkPause()
+            ## loops calc
+            dur = time() - before
+            print(dur)
+            timePer = dur / scanLoop
+            scanLoop = math.ceil(LOOPSLEEPDUR / timePer)
+            ##
+            # sleep(max((LOOPSLEEPDUR - (dur)), 0))
+            print(
+                "Rotated",
+                r,
+                time() - start,
+                scanLoop,
+                "timePer",
+                timePer,
+                "dur",
+                dur,
+                c1,
+                c2,
+            )
 
 
 if __name__ == "__main__":
