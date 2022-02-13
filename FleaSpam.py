@@ -164,13 +164,14 @@ def found_bot(pos: tuple):
     x2 -= 15
     fullImg = fast_screenshot(tarkHANDLE)
     img = fullImg[y1:y2, x1:x2]
+    cv2.imwrite("asd.png", img)
     #####Post processing for accuracy
     # img[np.where((img > [0, 0, 50]).all(axis=2))] = [0, 0, 0] #red
     # img[np.where((img > [40, 0, 0]).all(axis=2))] = [255, 255, 255] #blue
     img = cv2.resize(img, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
     # cv2.waitKey(0)
     # cv2.destroyAllWindows()
-    # img = cv2.bilateralFilter(img, 5, 50, 50)
+    img = cv2.bilateralFilter(img, 5, 50, 50)
     img = cv2.bilateralFilter(img, 9, 75, 75)
     img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
     img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 17, 0)
@@ -335,33 +336,6 @@ def locate_image_ndarray(
     return False
 
 
-def locateImages(file_loc: tuple, nickname: tuple, acc=(0.8), callback: tuple = None, passRawPos=None):
-    global surchTime, countSurch
-    countSurch += 1
-    before = time()
-    img = fastScreenshot()
-    after = time()
-    # print(after-before, "fastScreenshot")
-    surchTime += after - before
-    # print("length", len(file_loc))
-    for i in range(len(file_loc)):
-        checkPause()
-        # print("checking for ", file_loc[i])
-        rawPos = imagesearcharea(file_loc[i], acc[i], img)
-        # print(rawPos)
-        avg = printAvgScans()
-        if rawPos[0] != -1:
-            print("I saw", nickname[i], rawPos, avg)  # end='\r'
-            if callback is not None:
-                if passRawPos is None:
-                    callback[i]()
-                elif passRawPos[i]:
-                    callback[i](rawPos)
-                else:
-                    callback[i]()
-                    break
-
-
 def plik_work(img, key) -> bool:
     # view the first ndarray (template) instead of copying :)
     template = imageDict[key][0].view()
@@ -377,20 +351,20 @@ def plik_work(img, key) -> bool:
     return False
 
 
-def parallel_locate_image_keys(executor, keys: tuple):
+def parallel_locate_image_keys(keys: tuple):
     # print("parallel_locate_image_keys")
     checkPause()
     # np.ndarray
     img = fast_screenshot(tarkHANDLE)
     imgView = img.view()
-    futures = {executor.submit(plik_work, img, key): key for key in keys}
-    # executor.map(plik_work, ((imgView, key) for key in keys))
-    # for future in as_completed(futures, 1):
-    for future in futures:
-        # waits for first,then second,then third,then fourth
-        # doesnt prevent them from ending early
-        checkPause()
-        future.result()
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        futures = {executor.submit(plik_work, img, key): key for key in keys}
+        # executor.map(plik_work, ((imgView, key) for key in keys))
+        # for future in as_completed(futures, 1):
+        for future in as_completed(futures):
+            if future.result():
+                executor.shutdown(wait=False)
+        executor.shutdown()
 
 
 ## TODO parallelize
@@ -433,14 +407,9 @@ def checkPause():
     return False
 
 
-def doJumping():
-    if random.uniform(0, 1) < 0.5:
-        press_key(0x20, sleepDur)  # Spacebar
-
-
 def fleaCheck():
     # runs if not on flea page
-    if not locateImage("./search/flea.png", "flea,", acc=0.9):
+    if not locate_images_keys(("flea",)):
         print("not in flea :(")
         for _ in range(5):
             press_key(win32con.VK_ESCAPE, sleepDur)
@@ -707,46 +676,45 @@ def main():
     start = time()
     locate_images_keys(("bot", "afk", "fail"))
     fleaCheck()
-    with ThreadPoolExecutor() as executor:
-        while True:
+    while 1:
+        checkPause()
+        click_f5()
+        before = time()
+        for _ in range(scanLoop):
+            c1 += 1
             checkPause()
-            click_f5()
-            before = time()
-            for _ in range(scanLoop):
-                c1 += 1
-                checkPause()
-                if c1 == fleaCheckFrequency:
-                    # check for flea
-                    c1 = 0
-                    c2 += 1
-                    if c2 == autoSellFrequency:
-                        if autoSellBool:
-                            r += sell_items(sellItems)
-                        c1 = c2 = 0
-                    fleaCheck()
-                # locate_images_keys(("bot", "afk", "fail", "offer"))
-                checkPause()
-                parallel_locate_image_keys(executor, ("bot", "afk", "fail", "offer"))
-                checkPause()
-            ## loops calc
-            dur = time() - before
-            print(dur)
-            timePer = dur / scanLoop
-            scanLoop = math.ceil(LOOPSLEEPDUR / timePer)
-            ##
-            # sleep(max((LOOPSLEEPDUR - (dur)), 0))
-            print(
-                "Rotated",
-                r,
-                time() - start,
-                scanLoop,
-                "timePer",
-                timePer,
-                "dur",
-                dur,
-                c1,
-                c2,
-            )
+            if c1 == fleaCheckFrequency:
+                # check for flea
+                c1 = 0
+                c2 += 1
+                if c2 == autoSellFrequency:
+                    if autoSellBool:
+                        r += sell_items(sellItems)
+                    c1 = c2 = 0
+                fleaCheck()
+            # locate_images_keys(("bot", "afk", "fail", "offer"))
+            checkPause()
+            parallel_locate_image_keys(("bot", "afk", "fail", "offer"))
+            checkPause()
+        ## loops calc
+        dur = time() - before
+        print(dur)
+        timePer = dur / scanLoop
+        scanLoop = math.ceil(LOOPSLEEPDUR / timePer)
+        ##
+        # sleep(max((LOOPSLEEPDUR - (dur)), 0))
+        print(
+            "Rotated",
+            r,
+            time() - start,
+            scanLoop,
+            "timePer",
+            timePer,
+            "dur",
+            dur,
+            c1,
+            c2,
+        )
 
 
 if __name__ == "__main__":
