@@ -164,7 +164,6 @@ def found_bot(pos: tuple):
     x2 -= 15
     fullImg = fast_screenshot(tarkHANDLE)
     img = fullImg[y1:y2, x1:x2]
-    cv2.imwrite("asd.png", img)
     #####Post processing for accuracy
     # img[np.where((img > [0, 0, 50]).all(axis=2))] = [0, 0, 0] #red
     # img[np.where((img > [40, 0, 0]).all(axis=2))] = [255, 255, 255] #blue
@@ -676,7 +675,7 @@ def main():
     start = time()
     locate_images_keys(("bot", "afk", "fail"))
     fleaCheck()
-    while 1:
+    while True:
         checkPause()
         click_f5()
         before = time()
