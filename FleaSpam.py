@@ -50,6 +50,7 @@ def printAvgScans() -> str:
 
 
 def click_f5():
+    print("click_f5")
     click(posF5[0], posF5[1])
 
 
@@ -162,6 +163,7 @@ def found_bot(pos: tuple):
     y1 += 70  ## +70 = trim top off
     x1 += 15
     x2 -= 15
+    sleep(2)  # pain
     fullImg = fast_screenshot(tarkHANDLE)
     img = fullImg[y1:y2, x1:x2]
     #####Post processing for accuracy
@@ -170,7 +172,7 @@ def found_bot(pos: tuple):
     img = cv2.resize(img, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
     # cv2.waitKey(0)
     # cv2.destroyAllWindows()
-    img = cv2.bilateralFilter(img, 5, 50, 50)
+    # img = cv2.bilateralFilter(img, 5, 50, 50)
     img = cv2.bilateralFilter(img, 9, 75, 75)
     img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
     img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 17, 0)
@@ -178,11 +180,11 @@ def found_bot(pos: tuple):
     #####
 
     b = time()
-    text = pytesseract.image_to_string(img, lang="bender", config="--psm 11")
+    text = pytesseract.image_to_string(img, lang="bender", config="--psm 12")  # 11 or 12
     a = time()
     print(a - b, "yikes")
     print("read text:", text)
-    cv2.imshow(text, img)
+    # cv2.imshow(text, img)
     checkPause()
     found = "You must choose all:"
     if found in text:
@@ -212,14 +214,9 @@ def found_bot(pos: tuple):
     before = time()
     result = cv2.matchTemplate(fullImg, match, cv2.TM_CCOEFF_NORMED)  # img -> fullImg
     print(time() - before)
-    clicked = []  # list of coord tuples
     (yCoords, xCoords) = np.where(result >= 0.97)
-    sleep(0.2)
     for (y, x) in zip(yCoords, xCoords):
-        if (x, y) in clicked:
-            continue
         print("finna click", x, y)
-        clicked.append((x, y))  # coord tuple
         click(x, y)
         sleep(0.1)
     ##
@@ -227,7 +224,7 @@ def found_bot(pos: tuple):
     xConfirm, yConfirm = (960, 1080 - pos[1] - 30)
     print("CONFIRM", xConfirm, yConfirm)
     click(xConfirm, yConfirm)
-    sleep(1)  # slow server😠
+    sleep(2)  # slow server😠
     return
 
 
@@ -254,11 +251,11 @@ def imagesearcharea(smallLoc, precision=0.8, big=None, region=None):
     return max_loc
 
 
-def image_search_area_ndarray(template: np.ndarray, precision=0.8, screenshot: np.ndarray = None, region=None):
-    img_gray = cv2.cvtColor(screenshot, cv2.COLOR_BGR2GRAY)
+def image_search_area_ndarray(template: np.ndarray, precision=0.8, img: np.ndarray = None, region=None):
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     # before = time()
     res = cv2.matchTemplate(
-        img_gray,
+        img,
         template,
         cv2.TM_CCOEFF_NORMED,
     )
@@ -302,9 +299,32 @@ def locateImage(file_loc, nickname, acc=0.8, callback=None, passRawPos=False, re
     return False
 
 
+def locate_image_ndarray_all(
+    template: np.ndarray,
+    acc=0.97,
+    callback=None,
+    passRawPos=False,
+    region=None,
+):
+    img = fast_screenshot(tarkHANDLE)
+    if region is not None:
+        x1, y1, x2, y2 = region
+        img = img[y1:y2, x1:x2]
+    result = cv2.matchTemplate(img, template, cv2.TM_CCOEFF_NORMED)  # img -> fullImg
+    (yCoords, xCoords) = np.where(result >= acc)
+    for (y, x) in zip(yCoords, xCoords):
+        if region is not None:
+            x += region[0]
+            y += region[1]
+        if callback is not None:
+            callback((x, y))
+        else:
+            callback()
+
+
 def locate_image_ndarray(
-    image: np.ndarray,
-    acc=0.8,
+    template: np.ndarray,
+    acc=0.9,
     callback=None,
     passRawPos=False,
     region=None,
@@ -321,7 +341,7 @@ def locate_image_ndarray(
     after = time()
     surchTime += after - before
     # print("calling image_search_area", acc)
-    rawPosX, rawPosY = image_search_area_ndarray(image, acc, img)
+    rawPosX, rawPosY = image_search_area_ndarray(template, acc, img)
     if rawPosX != -1:
         if region is not None:
             rawPosX += region[0]
@@ -360,6 +380,7 @@ def parallel_locate_image_keys(keys: tuple):
         futures = {executor.submit(plik_work, img, key): key for key in keys}
         # executor.map(plik_work, ((imgView, key) for key in keys))
         # for future in as_completed(futures, 1):
+        checkPause()
         for future in as_completed(futures):
             if future.result():
                 executor.shutdown(wait=False)
@@ -408,14 +429,15 @@ def checkPause():
 
 def fleaCheck():
     # runs if not on flea page
-    if not locate_images_keys(("flea",)):
+    print("fleaCheck")
+    if not locate_image_ndarray(*imageDict["flea"]):
         print("not in flea :(")
-        for _ in range(5):
+        for _ in range(10):
             press_key(win32con.VK_ESCAPE, sleepDur)
             sleep(sleepDur)
-        sleep(random.uniform(0.5, 0.7))
+        sleep(1)
         click(1260, 1060)  # flea button
-        sleep(random.uniform(1, 2))
+        sleep(1.5)
         click_f5()
 
 
@@ -441,7 +463,7 @@ def collect_sells(dir: str):
         filepath = os.path.join(dir, filename)
         if os.path.isdir(filepath):
             continue
-        sellImages.append((filepath, filename, 0.95))
+        sellImages.append(cv2.imread(filepath, 0))
     return sellImages
 
 
@@ -470,49 +492,22 @@ def saw_sleep_click(nickname, sleepRange, clickLoc, clickNum=1):
 def sell_items(searchArr) -> int:
     print("Selling Items")
     # wait_until("mainMenu", (press_key, (win32con.VK_ESCAPE, sleepDur)))
-    locate_images_keys(("bot",))
-    wait_until(
-        "mainMenu",
-        (
-            (
-                press_key,
-                (
-                    win32con.VK_ESCAPE,
-                    sleepDur,
-                ),
-            ),
-            (
-                sleep,
-                (0.05,),
-            ),
-        ),
-    )
+
+    locate_images_keys(("bot",))  # check for bot popup because tarkov :)
+    wait_until("mainMenu", ((press_key, (win32con.VK_ESCAPE, sleepDur)), (sleep, (0.05,))))
     sleep(1)
-    locate_images_keys(("bot",))
+
+    locate_images_keys(("bot",))  # check for bot popup because tarkov :)
     saw_sleep_click("menu", (1, 1.2), (1114, 1065))
-    wait_until(
-        "rapist",
-        (
-            (
-                sleep,
-                (0.5,),
-            ),
-        ),
-    )
+    wait_until("rapist", ((sleep, (0.5,)),))
     sleep(1)
-    locate_images_keys(("bot",))
+
+    locate_images_keys(("bot",))  # check for bot popup because tarkov :)
     saw_sleep_click("rapist", (1, 1.2), (871, 413))
-    wait_until(
-        "rapistLoaded",
-        (
-            (
-                sleep,
-                (0.5,),
-            ),
-        ),
-    )
+    wait_until("rapistLoaded", ((sleep, (0.5,)),))
     sleep(1)
-    locate_images_keys(("bot",))
+
+    locate_images_keys(("bot",))  # check for bot popup because tarkov :)
     saw_sleep_click("rapist menu", (1, 1.2), (240, 45), 10)
     total = 0
     region = (1265, 250, 1920, 1080)
@@ -521,7 +516,7 @@ def sell_items(searchArr) -> int:
         noneStreak = 0
         didFind = False
         itemsSold = 0
-        locate_images_keys(("bot",))
+        locate_images_keys(("bot",))  # check for bot popup because tarkov :)
         while True:
             checkPause()
             if noneStreak >= 5:
@@ -529,7 +524,7 @@ def sell_items(searchArr) -> int:
                 break
             for search in searchArr:
                 didFind = False
-                if locateImage(search[0], search[1], search[2], ctrlClick, True, region):
+                if locate_image_ndarray(search, 0.95, ctrlClick, True, region):
                     itemsSold += 1
                     total += 1
                     didFind = True
@@ -556,8 +551,8 @@ def sell_items(searchArr) -> int:
 
 
 autoSellBool = True
-fleaCheckFrequency = 500
-itemSellFrequency = 10000
+fleaCheckFrequency = 10
+itemSellFrequency = 200
 posOffer = (1774, 174)  # Client Coords
 posOK = (962, 567)  # Client Coords
 posBOT = (420, 300)  # Client Coords
@@ -573,7 +568,7 @@ startTime = time()
 lastF5 = startTime
 offerTotal = 0
 failTotal = 0
-scanLoop = 3
+scanLoop = 5
 spamCount = 0
 progressSpinner = ["/", "-", "\\", "|"]
 clickLoop = 3
@@ -592,7 +587,7 @@ templateStore = {
     "rapistLoaded": cv2.imread("./search/rapistLoaded.png", 0),
     "hideoutEnter": cv2.imread("./search/hideoutEnter.png", 0),
 }
-# np.ndarray, precision, callback, passArgs, region, multiMatch
+# np.ndarray, precision, callback, passArgs, region
 imageDict = {
     "offer": (templateStore["offer"].view(), 0.95, spamClickY, True, None),  # (1700, 145, 1850, 1000)
     "afk": (templateStore["afk"].view(), 0.95, antiAFK2, False, None),  # (710, 450, 800, 480)
@@ -673,31 +668,29 @@ def main():
     c1 = c2 = r = 0
     autoSellFrequency = itemSellFrequency / fleaCheckFrequency
     start = time()
-    locate_images_keys(("bot", "afk", "fail"))
-    fleaCheck()
+    parallel_locate_image_keys(("bot", "afk", "fail"))
     while True:
         checkPause()
         click_f5()
         before = time()
+        c1 += 1
+        if c1 == fleaCheckFrequency:
+            # check for flea
+            c1 = 0
+            c2 += 1
+            if c2 == autoSellFrequency:
+                if autoSellBool:
+                    r += sell_items(sellItems)
+                c1 = c2 = 0
+            fleaCheck()
         for _ in range(scanLoop):
-            c1 += 1
             checkPause()
-            if c1 == fleaCheckFrequency:
-                # check for flea
-                c1 = 0
-                c2 += 1
-                if c2 == autoSellFrequency:
-                    if autoSellBool:
-                        r += sell_items(sellItems)
-                    c1 = c2 = 0
-                fleaCheck()
             # locate_images_keys(("bot", "afk", "fail", "offer"))
             checkPause()
             parallel_locate_image_keys(("bot", "afk", "fail", "offer"))
             checkPause()
         ## loops calc
         dur = time() - before
-        print(dur)
         timePer = dur / scanLoop
         scanLoop = math.ceil(LOOPSLEEPDUR / timePer)
         ##
