@@ -1,3 +1,0 @@
-opencv-python
-pywin32
-pillow

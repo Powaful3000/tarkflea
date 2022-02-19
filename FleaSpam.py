@@ -86,8 +86,7 @@ def clickFail(rawPos=None):
         x += 10
         y += 10
     click(x, y)
-    # press_key(win32con.VK_ESCAPE, sleepDur)  # realized i can press esc instead of clicking ok :)
-    ## sleep(max(FAILPAUSE, 0.2))
+    sleep(sleepDur)
 
 
 def fastScreenshot() -> Image.Image:
@@ -118,7 +117,7 @@ def fastScreenshot() -> Image.Image:
     return im
 
 
-def fast_screenshot(handle: int) -> np.ndarray:
+def fast_screenshot(handle: int, gray=False) -> np.ndarray:
     start = time()
     left, top, right, bot = win32gui.GetWindowRect(handle)
     w = right - left
@@ -145,7 +144,8 @@ def fast_screenshot(handle: int) -> np.ndarray:
     # make image C_CONTIGUOUS to avoid errors with cv.rectangle()
     imgView = np.ascontiguousarray(imgView)
     # make grey for my template match
-    # img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    if gray:
+        imgView = cv2.cvtColor(imgView, cv2.COLOR_RGB2GRAY)
     end = time()
     # print("fast_screenshot took", end - start)
     return imgView
@@ -252,7 +252,7 @@ def imagesearcharea(smallLoc, precision=0.8, big=None, region=None):
 
 
 def image_search_area_ndarray(template: np.ndarray, precision=0.8, img: np.ndarray = None, region=None):
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     # before = time()
     res = cv2.matchTemplate(
         img,
@@ -299,20 +299,27 @@ def locateImage(file_loc, nickname, acc=0.8, callback=None, passRawPos=False, re
     return False
 
 
-def locate_image_ndarray_all(
-    template: np.ndarray,
-    acc=0.97,
-    callback=None,
-    passRawPos=False,
-    region=None,
-):
+def search_all(template: np.ndarray, acc=0.95, region=None):
     img = fast_screenshot(tarkHANDLE)
     if region is not None:
         x1, y1, x2, y2 = region
         img = img[y1:y2, x1:x2]
     result = cv2.matchTemplate(img, template, cv2.TM_CCOEFF_NORMED)  # img -> fullImg
     (yCoords, xCoords) = np.where(result >= acc)
+    return [(x + x1, y + y1) for (y, x) in zip(yCoords, xCoords)]
+
+
+def locate_image_ndarray_all(template: np.ndarray, acc=0.97, callback=None, passRawPos=False, region=None):
+    img = fast_screenshot(tarkHANDLE)
+    if region is not None:
+        x1, y1, x2, y2 = region
+        img = img[y1:y2, x1:x2]
+    result = cv2.matchTemplate(img, template, cv2.TM_CCOEFF_NORMED)  # img -> fullImg
+    (yCoords, xCoords) = np.where(result >= acc)
+    ret = False
     for (y, x) in zip(yCoords, xCoords):
+        if not ret:
+            ret = True
         if region is not None:
             x += region[0]
             y += region[1]
@@ -320,6 +327,7 @@ def locate_image_ndarray_all(
             callback((x, y))
         else:
             callback()
+    return ret
 
 
 def locate_image_ndarray(
@@ -333,7 +341,7 @@ def locate_image_ndarray(
     countSurch += 1
     before = time()
     # img = machine.get()
-    img = fast_screenshot(tarkHANDLE)
+    img = fast_screenshot(tarkHANDLE, gray=True)
     # print("Image Type:", type(img))
     if region is not None:
         x1, y1, x2, y2 = region
@@ -374,8 +382,8 @@ def parallel_locate_image_keys(keys: tuple):
     # print("parallel_locate_image_keys")
     checkPause()
     # np.ndarray
-    img = fast_screenshot(tarkHANDLE)
-    imgView = img.view()
+    img = fast_screenshot(tarkHANDLE, gray=True)
+
     with ThreadPoolExecutor(max_workers=4) as executor:
         futures = {executor.submit(plik_work, img, key): key for key in keys}
         # executor.map(plik_work, ((imgView, key) for key in keys))
@@ -394,7 +402,7 @@ def locate_images_keys(keys: tuple):
     before = time()
     # img = machine.get()
     # ndarray
-    img = fast_screenshot(tarkHANDLE)  # was fastScreenshot (PIL.Image)
+    img = fast_screenshot(tarkHANDLE, gray=True)  # was fastScreenshot (PIL.Image)
     # print("Image Type1:", type(img))
     after = time()
     # print(after-before, "fastScreenshot")
@@ -432,12 +440,12 @@ def fleaCheck():
     print("fleaCheck")
     if not locate_image_ndarray(*imageDict["flea"]):
         print("not in flea :(")
-        for _ in range(10):
+        for _ in range(25):
             press_key(win32con.VK_ESCAPE, sleepDur)
             sleep(sleepDur)
         sleep(1)
         click(1260, 1060)  # flea button
-        sleep(1.5)
+        sleep(1)
         click_f5()
 
 
@@ -463,7 +471,8 @@ def collect_sells(dir: str):
         filepath = os.path.join(dir, filename)
         if os.path.isdir(filepath):
             continue
-        sellImages.append(cv2.imread(filepath, 0))
+        # sellImages.append(cv2.imread(filepath, 0))
+        sellImages.append(cv2.imread(filepath))
     return sellImages
 
 
@@ -486,73 +495,83 @@ def saw_sleep_click(nickname, sleepRange, clickLoc, clickNum=1):
     sleep(random.uniform(*sleepRange))
     for _ in range(clickNum):
         click(*clickLoc)
+        sleep(sleepDur)
 
 
 ### TODO: batch search and click items, instead of search click loop
 def sell_items(searchArr) -> int:
     print("Selling Items")
-    # wait_until("mainMenu", (press_key, (win32con.VK_ESCAPE, sleepDur)))
+    fleaCheck()
 
     locate_images_keys(("bot",))  # check for bot popup because tarkov :)
-    wait_until("mainMenu", ((press_key, (win32con.VK_ESCAPE, sleepDur)), (sleep, (0.05,))))
-    sleep(1)
+    # wait_until("mainMenu", ((press_key, (win32con.VK_ESCAPE, sleepDur)), (sleep, (0.05,))))
+    # sleep(1)
 
-    locate_images_keys(("bot",))  # check for bot popup because tarkov :)
-    saw_sleep_click("menu", (1, 1.2), (1114, 1065))
-    wait_until("rapist", ((sleep, (0.5,)),))
-    sleep(1)
+    # locate_images_keys(("bot",))  # check for bot popup because tarkov :)
+    # saw_sleep_click("menu", (1, 1.2), (1114, 1065))
+    # wait_until("rapist", ((sleep, (0.5,)),))
+    # sleep(1)
+
+    ## click traders button not menu lol
+    click(1070, 1060)
 
     locate_images_keys(("bot",))  # check for bot popup because tarkov :)
     saw_sleep_click("rapist", (1, 1.2), (871, 413))
-    wait_until("rapistLoaded", ((sleep, (0.5,)),))
+    wait_until("rapistLoaded", ((sleep, (0.2,)),))
     sleep(1)
 
     locate_images_keys(("bot",))  # check for bot popup because tarkov :)
-    saw_sleep_click("rapist menu", (1, 1.2), (240, 45), 10)
+    saw_sleep_click("rapist menu", (1, 1.2), (240, 45), 10)  # 240,45 is sell button
     total = 0
     region = (1265, 250, 1920, 1080)
-    click(1613, 542)  # click / move mouse to where it scrolls
-    for _ in range(10):
-        noneStreak = 0
-        didFind = False
-        itemsSold = 0
-        locate_images_keys(("bot",))  # check for bot popup because tarkov :)
-        while True:
+    with ThreadPoolExecutor() as executor:
+        for _ in range(10):
+            click(240, 45)  # rapist sell button
+            locate_images_keys(("bot",))  # check for bot popup because tarkov :)
+
+            ##
+
+            # list of coord tuples
+            futures = {executor.submit(search_all, search, 0.97, region): search for search in searchArr}
             checkPause()
-            if noneStreak >= 5:
-                print("noneStreak >= 5")
-                break
-            for search in searchArr:
-                didFind = False
-                if locate_image_ndarray(search, 0.95, ctrlClick, True, region):
-                    itemsSold += 1
-                    total += 1
-                    didFind = True
-                    if (itemsSold % 20) == 0:
-                        print(itemsSold, itemsSold % 20, "click deal :)")
-                        click(956, 182)  # Deal button
-            if didFind:
-                noneStreak = 0
-            else:
-                noneStreak += 1
-        sleep(sleepDur)
-        print("fuelConSold", itemsSold)
-        if itemsSold > 10:
-            print("click deal :)")
-            click(956, 182)  # Deal button
-        sleep(sleepDur)
-        click(1613, 542)  # click / move mouse to where it scrolls
-        sleep(sleepDur)
-        for _ in range(8):
-            win32api.mouse_event(win32con.MOUSEEVENTF_WHEEL, 1613, 542, -1, 0)  # Scroll down
+            # COLLECT CLICKS
+            toClick = []
+            for future in futures:
+                res = future.result()
+                if len(res) > 0:
+                    toClick += res
+
+            numSold = 0
+            win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
             sleep(sleepDur)
-    click(956, 182)  # Deal button
-    return total
+            for (x, y) in toClick:
+                numSold += 1
+                click(x, y)
+                click(x, y)
+                click(x, y)
+            sleep(sleepDur)
+            win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
+
+            # sleep(sleepDur)
+            if numSold:
+                print("click deal :)")
+                click(956, 182)  # Deal button
+                total += numSold
+            print("fuelConSold", numSold)
+
+            # sleep(sleepDur)
+            click(1613, 542)  # click / move mouse to where it scrolls
+            # sleep(sleepDur)
+            for _ in range(8):
+                win32api.mouse_event(win32con.MOUSEEVENTF_WHEEL, 1613, 542, -1, 0)  # Scroll down
+                sleep(sleepDur)
+        click(956, 182)  # Deal button
+        return total
 
 
-autoSellBool = True
+autoSellBool = False
 fleaCheckFrequency = 10
-itemSellFrequency = 200
+itemSellFrequency = 250
 posOffer = (1774, 174)  # Client Coords
 posOK = (962, 567)  # Client Coords
 posBOT = (420, 300)  # Client Coords
@@ -595,7 +614,7 @@ imageDict = {
     "flea": (templateStore["flea"].view(), 0.95, None, True, None),
     "bot": (templateStore["bot"].view(), 0.95, found_bot, True, None),
     "mainMenu": (templateStore["mainMenu"].view(), 0.95, None, False, (10, 1050, 45, 1075)),
-    "rapist": (templateStore["rapist"].view(), 0.95, None, False, (850, 380, 870, 402)),
+    "rapist": (templateStore["rapist"].view(), 0.95, None, False, (830, 360, 910, 440)),
     "rapistLoaded": (templateStore["rapistLoaded"].view(), 0.95, None, False, (85, 35, 120, 50)),
     "hideoutEnter": (templateStore["hideoutEnter"].view(), 0.95, None, False, (900, 20, 1000, 50)),
 }
@@ -662,7 +681,7 @@ def main():
         except Exception as e:
             print("Exception", e)
             print("Try Again :)")
-            sleep(0.2)
+            sleep(0.5)
     sys.stdout.flush()
     afkTime = time()
     c1 = c2 = r = 0
