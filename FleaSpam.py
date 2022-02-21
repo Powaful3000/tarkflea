@@ -572,7 +572,7 @@ def sell_items(searchArr) -> int:
 
 autoSellBool = True
 fleaCheckFrequency = 10
-itemSellFrequency = 10
+itemSellFrequency = 250
 posOffer = (1774, 174)  # Client Coords
 posOK = (962, 567)  # Client Coords
 posBOT = (420, 300)  # Client Coords
