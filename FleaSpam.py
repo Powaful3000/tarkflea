@@ -526,7 +526,7 @@ def sell_items(searchArr) -> int:
     total = 0
     region = (1265, 250, 1920, 1080)
     with ThreadPoolExecutor() as executor:
-        for _ in range(10):
+        for _ in range(20):
             click(240, 45)  # rapist sell button
             locate_images_keys(("bot",))  # check for bot popup because tarkov :)
 
@@ -563,7 +563,7 @@ def sell_items(searchArr) -> int:
             # sleep(sleepDur)
             click(1613, 542)  # click / move mouse to where it scrolls
             # sleep(sleepDur)
-            for _ in range(8):
+            for _ in range(4):
                 win32api.mouse_event(win32con.MOUSEEVENTF_WHEEL, 1613, 542, -1, 0)  # Scroll down
                 sleep(sleepDur)
         click(956, 182)  # Deal button
