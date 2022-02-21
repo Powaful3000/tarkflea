@@ -504,8 +504,8 @@ def sell_items(searchArr) -> int:
     fleaCheck()
 
     locate_images_keys(("bot",))  # check for bot popup because tarkov :)
-    # wait_until("mainMenu", ((press_key, (win32con.VK_ESCAPE, sleepDur)), (sleep, (0.05,))))
-    # sleep(1)
+    wait_until("mainMenu", ((press_key, (win32con.VK_ESCAPE, sleepDur)), (sleep, (0.05,))))
+    sleep(1)
 
     ## click traders button not menu lol
     click(1070, 1060)
