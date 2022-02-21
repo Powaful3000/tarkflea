@@ -507,10 +507,13 @@ def sell_items(searchArr) -> int:
     # wait_until("mainMenu", ((press_key, (win32con.VK_ESCAPE, sleepDur)), (sleep, (0.05,))))
     # sleep(1)
 
+    click(1070, 1070)  # trader button
+    sleep(1)
+
     # locate_images_keys(("bot",))  # check for bot popup because tarkov :)
     # saw_sleep_click("menu", (1, 1.2), (1114, 1065))
-    # wait_until("rapist", ((sleep, (0.5,)),))
-    # sleep(1)
+    wait_until("rapist", ((sleep, (0.5,)),))
+    sleep(1)
 
     ## click traders button not menu lol
     click(1070, 1060)
@@ -569,9 +572,9 @@ def sell_items(searchArr) -> int:
         return total
 
 
-autoSellBool = False
+autoSellBool = True
 fleaCheckFrequency = 10
-itemSellFrequency = 250
+itemSellFrequency = 10
 posOffer = (1774, 174)  # Client Coords
 posOK = (962, 567)  # Client Coords
 posBOT = (420, 300)  # Client Coords
@@ -582,7 +585,7 @@ countSurch = 0.0
 surchTime = 0.0
 FAILPAUSE = 0  # SECONDS
 OFFERPAUSE = 0.0
-LOOPSLEEPDUR = 0.55
+LOOPSLEEPDUR = 0.6
 startTime = time()
 lastF5 = startTime
 offerTotal = 0
