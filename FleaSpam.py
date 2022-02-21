@@ -87,10 +87,7 @@ def clickFail(rawPos=None):
         x, y = rawPos
         x += 10
         y += 10
-    if failTotal % 10:
-        press_key(win32con.VK_ESCAPE, sleepDur)
-    else:
-        click(x, y)
+    click(x, y)
     sleep(sleepDur)
 
 
@@ -571,7 +568,7 @@ def sell_items(searchArr) -> int:
 
 
 autoSellBool = True
-fleaCheckFrequency = 5
+fleaCheckFrequency = 10
 itemSellFrequency = 250
 posOffer = (1774, 174)  # Client Coords
 posOK = (962, 567)  # Client Coords
