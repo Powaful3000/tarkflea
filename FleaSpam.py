@@ -507,16 +507,14 @@ def sell_items(searchArr) -> int:
     # wait_until("mainMenu", ((press_key, (win32con.VK_ESCAPE, sleepDur)), (sleep, (0.05,))))
     # sleep(1)
 
-    click(1070, 1070)  # trader button
+    ## click traders button not menu lol
+    click(1070, 1060)
     sleep(1)
 
     # locate_images_keys(("bot",))  # check for bot popup because tarkov :)
     # saw_sleep_click("menu", (1, 1.2), (1114, 1065))
     wait_until("rapist", ((sleep, (0.5,)),))
     sleep(1)
-
-    ## click traders button not menu lol
-    click(1070, 1060)
 
     locate_images_keys(("bot",))  # check for bot popup because tarkov :)
     saw_sleep_click("rapist", (1, 1.2), (871, 413))
@@ -617,7 +615,7 @@ imageDict = {
     "flea": (templateStore["flea"].view(), 0.95, None, True, None),
     "bot": (templateStore["bot"].view(), 0.95, found_bot, True, None),
     "mainMenu": (templateStore["mainMenu"].view(), 0.95, None, False, (10, 1050, 45, 1075)),
-    "rapist": (templateStore["rapist"].view(), 0.95, None, False, (830, 360, 910, 440)),
+    "rapist": (templateStore["rapist"].view(), 0.95, None, False, (800, 300, 1100, 600)),
     "rapistLoaded": (templateStore["rapistLoaded"].view(), 0.95, None, False, (85, 35, 120, 50)),
     "hideoutEnter": (templateStore["hideoutEnter"].view(), 0.95, None, False, (900, 20, 1000, 50)),
 }
