@@ -1,19 +1,21 @@
-import pytesseract
+import math
 import os
-import re
-from PIL import Image
-import win32ui
 import random
+import re
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from difflib import get_close_matches
 from time import sleep, time
+
+import cv2
+import numpy as np
+import pytesseract
 import win32api
 import win32con
 import win32gui
-import numpy as np
-import cv2
-import math
-from difflib import get_close_matches
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import win32ui
+from numba import njit
+from PIL import Image
 
 
 def computeAvgOF() -> str:
@@ -85,36 +87,39 @@ def clickFail(rawPos=None):
         x, y = rawPos
         x += 10
         y += 10
-    click(x, y)
+    if failTotal % 2:
+        press_key(win32con.VK_ESCAPE, sleepDur)
+    else:
+        click(x, y)
     sleep(sleepDur)
 
 
-def fastScreenshot() -> Image.Image:
-    start = time()
-    left, top, right, bot = win32gui.GetWindowRect(tarkHANDLE)
-    w = right - left
-    h = bot - top
-    hdesktop = win32gui.GetDesktopWindow()
-    hwndDC = win32gui.GetWindowDC(hdesktop)
-    mfcDC = win32ui.CreateDCFromHandle(hwndDC)
-    saveDC = mfcDC.CreateCompatibleDC()
-    saveBitMap = win32ui.CreateBitmap()
-    saveBitMap.CreateCompatibleBitmap(mfcDC, w, h)
-    saveDC.SelectObject(saveBitMap)
-    saveDC.BitBlt((0, 0), (w, h), mfcDC, (left, top), win32con.SRCCOPY)
-    bmpinfo = saveBitMap.GetInfo()
-    bmpstr = saveBitMap.GetBitmapBits(True)
-    im = Image.frombuffer("RGB", (bmpinfo["bmWidth"], bmpinfo["bmHeight"]), bmpstr, "raw", "BGRX", 0, 1)
-    win32gui.DeleteObject(saveBitMap.GetHandle())
-    saveDC.DeleteDC()
-    mfcDC.DeleteDC()
-    win32gui.ReleaseDC(hdesktop, hwndDC)
-    # if result == None:
-    #     #PrintWindow Succeeded
-    #     im.save("test.png",0)
-    end = time()
-    # print("fastScreenshot took", end - start)
-    return im
+# def fastScreenshot() -> Image.Image:
+#     start = time()
+#     left, top, right, bot = win32gui.GetWindowRect(tarkHANDLE)
+#     w = right - left
+#     h = bot - top
+#     hdesktop = win32gui.GetDesktopWindow()
+#     hwndDC = win32gui.GetWindowDC(hdesktop)
+#     mfcDC = win32ui.CreateDCFromHandle(hwndDC)
+#     saveDC = mfcDC.CreateCompatibleDC()
+#     saveBitMap = win32ui.CreateBitmap()
+#     saveBitMap.CreateCompatibleBitmap(mfcDC, w, h)
+#     saveDC.SelectObject(saveBitMap)
+#     saveDC.BitBlt((0, 0), (w, h), mfcDC, (left, top), win32con.SRCCOPY)
+#     bmpinfo = saveBitMap.GetInfo()
+#     bmpstr = saveBitMap.GetBitmapBits(True)
+#     im = Image.frombuffer("RGB", (bmpinfo["bmWidth"], bmpinfo["bmHeight"]), bmpstr, "raw", "BGRX", 0, 1)
+#     win32gui.DeleteObject(saveBitMap.GetHandle())
+#     saveDC.DeleteDC()
+#     mfcDC.DeleteDC()
+#     win32gui.ReleaseDC(hdesktop, hwndDC)
+#     # if result == None:
+#     #     #PrintWindow Succeeded
+#     #     im.save("test.png",0)
+#     end = time()
+#     # print("fastScreenshot took", end - start)
+#     return im
 
 
 def fast_screenshot(handle: int, gray=False) -> np.ndarray:
@@ -132,7 +137,7 @@ def fast_screenshot(handle: int, gray=False) -> np.ndarray:
     saveDC.BitBlt((0, 0), (w, h), mfcDC, (left, top), win32con.SRCCOPY)
     # convert the raw data into a format opencv can read
     signedIntsArray = saveBitMap.GetBitmapBits(True)
-    img = np.frombuffer(signedIntsArray, dtype="uint8")
+    img = fsh1(signedIntsArray)
     img.shape = (h, w, 4)
     win32gui.DeleteObject(saveBitMap.GetHandle())
     saveDC.DeleteDC()
@@ -140,15 +145,26 @@ def fast_screenshot(handle: int, gray=False) -> np.ndarray:
     win32gui.ReleaseDC(hdesktop, hwndDC)
     imgView = img.view()
     # drop the alpha channel to work with cv.matchTemplate()
-    imgView = imgView[:, :, :3]
-    # make image C_CONTIGUOUS to avoid errors with cv.rectangle()
-    imgView = np.ascontiguousarray(imgView)
+    imgView = fsh2(imgView)
     # make grey for my template match
     if gray:
         imgView = cv2.cvtColor(imgView, cv2.COLOR_RGB2GRAY)
     end = time()
     # print("fast_screenshot took", end - start)
     return imgView
+
+
+@njit
+def fsh2(imgView):
+    imgView = imgView[:, :, :3]
+    # make image C_CONTIGUOUS to avoid errors with cv.rectangle()
+    imgView = np.ascontiguousarray(imgView)
+    return imgView
+
+
+@njit
+def fsh1(signedIntsArray):
+    return np.frombuffer(signedIntsArray, dtype="uint8")
 
 
 def found_bot(pos: tuple):
@@ -163,7 +179,7 @@ def found_bot(pos: tuple):
     y1 += 70  ## +70 = trim top off
     x1 += 15
     x2 -= 15
-    sleep(2)  # pain
+    sleep(1)  # pain
     fullImg = fast_screenshot(tarkHANDLE)
     img = fullImg[y1:y2, x1:x2]
     #####Post processing for accuracy
@@ -214,41 +230,48 @@ def found_bot(pos: tuple):
     before = time()
     result = cv2.matchTemplate(fullImg, match, cv2.TM_CCOEFF_NORMED)  # img -> fullImg
     print(time() - before)
-    (yCoords, xCoords) = np.where(result >= 0.97)
+    yCoords, xCoords = fbh1(result)
     for (y, x) in zip(yCoords, xCoords):
         print("finna click", x, y)
         click(x, y)
         sleep(0.1)
     ##
-    sleep(0.1)
+    sleep(0.5)
     xConfirm, yConfirm = (960, 1080 - pos[1] - 30)
     print("CONFIRM", xConfirm, yConfirm)
     click(xConfirm, yConfirm)
-    sleep(2)  # slow server😠
+    click(xConfirm, yConfirm)
+    sleep(3)  # slow server😠
     return
 
 
-# TODO change to region to fullscreen search
-# subrect = big[y:y+h , x:x+h]
-def imagesearcharea(smallLoc, precision=0.8, big=None, region=None):
-    img_rgb = np.array(big)
-    img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2GRAY)
-    template = cv2.imread(smallLoc, 0)
-    if template is None:
-        raise FileNotFoundError("Image file not found: {}".format(smallLoc))
-    before = time()
-    res = cv2.matchTemplate(img_gray, template, cv2.TM_CCOEFF_NORMED)
-    print("imagesearcharea", time() - before)
-    max_val: float
-    max_loc: list
-    _, max_val, _, max_loc = cv2.minMaxLoc(res)
-    if region is not None:
-        max_loc[0] += region[0]
-        max_loc[1] += region[1]
-    if max_val < precision:
-        return [-1, -1]
-    print("found", smallLoc, "at", max_loc)
-    return max_loc
+@njit(parallel=True)
+def fbh1(result):
+    (yCoords, xCoords) = np.where(result > 0.97)
+    return yCoords, xCoords
+
+
+# # TODO change to region to fullscreen search
+# # subrect = big[y:y+h , x:x+h]
+# def imagesearcharea(smallLoc, precision=0.8, big=None, region=None):
+#     img_rgb = np.array(big)
+#     img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2GRAY)
+#     template = cv2.imread(smallLoc, 0)
+#     if template is None:
+#         raise FileNotFoundError("Image file not found: {}".format(smallLoc))
+#     before = time()
+#     res = cv2.matchTemplate(img_gray, template, cv2.TM_CCOEFF_NORMED)
+#     print("imagesearcharea", time() - before)
+#     max_val: float
+#     max_loc: list
+#     _, max_val, _, max_loc = cv2.minMaxLoc(res)
+#     if region is not None:
+#         max_loc[0] += region[0]
+#         max_loc[1] += region[1]
+#     if max_val < precision:
+#         return [-1, -1]
+#     print("found", smallLoc, "at", max_loc)
+#     return max_loc
 
 
 def image_search_area_ndarray(template: np.ndarray, precision=0.8, img: np.ndarray = None, region=None):
@@ -271,41 +294,13 @@ def image_search_area_ndarray(template: np.ndarray, precision=0.8, img: np.ndarr
     return max_loc
 
 
-def locateImage(file_loc, nickname, acc=0.8, callback=None, passRawPos=False, region=None):
-    global surchTime, countSurch
-    countSurch += 1
-    before = time()
-    img = fastScreenshot()
-    # print(img.size)
-    if region is not None:
-        # print("crop", region)
-        img = img.crop(region)
-    # print(img.size)
-    after = time()
-    surchTime += after - before
-    rawPosX, rawPosY = imagesearcharea(file_loc, acc, img)
-    avg = printAvgScans()
-    if rawPosX != -1:
-        if region is not None:
-            rawPosX += region[0]
-            rawPosY += region[1]
-        print("I saw", nickname, (rawPosX, rawPosY), avg)  # end='\r'
-        if callback is not None:
-            if passRawPos is not None and passRawPos:
-                callback((rawPosX, rawPosY))
-            else:
-                callback()
-        return True
-    return False
-
-
 def search_all(template: np.ndarray, acc=0.95, region=None):
     img = fast_screenshot(tarkHANDLE)
     if region is not None:
         x1, y1, x2, y2 = region
         img = img[y1:y2, x1:x2]
     result = cv2.matchTemplate(img, template, cv2.TM_CCOEFF_NORMED)  # img -> fullImg
-    (yCoords, xCoords) = np.where(result >= acc)
+    yCoords, xCoords = sah1(acc, result)
     return [(x + x1, y + y1) for (y, x) in zip(yCoords, xCoords)]
 
 
@@ -315,7 +310,7 @@ def locate_image_ndarray_all(template: np.ndarray, acc=0.97, callback=None, pass
         x1, y1, x2, y2 = region
         img = img[y1:y2, x1:x2]
     result = cv2.matchTemplate(img, template, cv2.TM_CCOEFF_NORMED)  # img -> fullImg
-    (yCoords, xCoords) = np.where(result >= acc)
+    yCoords, xCoords = sah1(acc, result)
     ret = False
     for (y, x) in zip(yCoords, xCoords):
         if not ret:
@@ -328,6 +323,12 @@ def locate_image_ndarray_all(template: np.ndarray, acc=0.97, callback=None, pass
         else:
             callback()
     return ret
+
+
+@njit(parallel=True)
+def sah1(acc, result):
+    (yCoords, xCoords) = np.where(result >= acc)
+    return yCoords, xCoords
 
 
 def locate_image_ndarray(
@@ -395,7 +396,6 @@ def parallel_locate_image_keys(keys: tuple):
         executor.shutdown()
 
 
-## TODO parallelize
 def locate_images_keys(keys: tuple):
     global surchTime, countSurch
     countSurch += 1
@@ -611,7 +611,7 @@ templateStore = {
 imageDict = {
     "offer": (templateStore["offer"].view(), 0.95, spamClickY, True, None),  # (1700, 145, 1850, 1000)
     "afk": (templateStore["afk"].view(), 0.95, antiAFK2, False, None),  # (710, 450, 800, 480)
-    "fail": (templateStore["fail"].view(), 0.95, clickFail, True, None),
+    "fail": (templateStore["fail"].view(), 0.95, clickFail, True, (925, 500, 1025, 900)),
     "flea": (templateStore["flea"].view(), 0.95, None, True, None),
     "bot": (templateStore["bot"].view(), 0.95, found_bot, True, None),
     "mainMenu": (templateStore["mainMenu"].view(), 0.95, None, False, (10, 1050, 45, 1075)),
