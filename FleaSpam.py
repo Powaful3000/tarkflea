@@ -608,7 +608,7 @@ templateStore = {
 imageDict = {
     "offer": (templateStore["offer"].view(), 0.95, spamClickY, True, None),  # (1700, 145, 1850, 1000)
     "afk": (templateStore["afk"].view(), 0.95, antiAFK2, False, None),  # (710, 450, 800, 480)
-    "fail": (templateStore["fail"].view(), 0.95, clickFail, True, (925, 500, 1025, 900)),
+    "fail": (templateStore["fail"].view(), 0.95, clickFail, True, None),  # (925, 500, 1025, 900) but it brokey ??
     "flea": (templateStore["flea"].view(), 0.95, None, True, None),
     "bot": (templateStore["bot"].view(), 0.95, found_bot, True, None),
     "mainMenu": (templateStore["mainMenu"].view(), 0.95, None, False, (10, 1050, 45, 1075)),
