@@ -80,6 +80,7 @@ def spamClickY(rawPos=None):
 
 def clickFail(rawPos=None):
     global failTotal
+    print("clickFail",rawPos)
     failTotal += 1
     if rawPos is None:
         x, y = posOK[0], posOK[1]
@@ -87,6 +88,7 @@ def clickFail(rawPos=None):
         x, y = rawPos
         x += 10
         y += 10
+    sleep(sleepDur)
     click(x, y)
     sleep(sleepDur)
 
@@ -134,7 +136,7 @@ def fast_screenshot(handle: int, gray=False) -> np.ndarray:
     saveDC.BitBlt((0, 0), (w, h), mfcDC, (left, top), win32con.SRCCOPY)
     # convert the raw data into a format opencv can read
     signedIntsArray = saveBitMap.GetBitmapBits(True)
-    img = fsh1(signedIntsArray)
+    img = np.frombuffer(signedIntsArray, dtype="uint8")
     img.shape = (h, w, 4)
     win32gui.DeleteObject(saveBitMap.GetHandle())
     saveDC.DeleteDC()
@@ -142,7 +144,9 @@ def fast_screenshot(handle: int, gray=False) -> np.ndarray:
     win32gui.ReleaseDC(hdesktop, hwndDC)
     imgView = img.view()
     # drop the alpha channel to work with cv.matchTemplate()
-    imgView = fsh2(imgView)
+    imgView = drop_alpha(imgView)
+    # make image C_CONTIGUOUS to avoid errors with cv.rectangle()
+    # imgView = np.ascontiguousarray(imgView)
     # make grey for my template match
     if gray:
         imgView = cv2.cvtColor(imgView, cv2.COLOR_RGB2GRAY)
@@ -151,24 +155,18 @@ def fast_screenshot(handle: int, gray=False) -> np.ndarray:
     return imgView
 
 
-@njit
-def fsh2(imgView):
+@njit(fastmath=True)
+def drop_alpha(imgView):
     imgView = imgView[:, :, :3]
-    # make image C_CONTIGUOUS to avoid errors with cv.rectangle()
     imgView = np.ascontiguousarray(imgView)
     return imgView
-
-
-@njit
-def fsh1(signedIntsArray):
-    return np.frombuffer(signedIntsArray, dtype="uint8")
 
 
 def found_bot(pos: tuple):
     # return
     print("Found bot X at pos", pos)
     checkPause()
-    text = matches = ""
+    text = ""
     (x2, y1) = pos
     x2 += imageDict["bot"][0].shape[1]  # add width to x2
     x1 = 1920 - x2
@@ -178,7 +176,8 @@ def found_bot(pos: tuple):
     x2 -= 15
     sleep(1)  # pain
     fullImg = fast_screenshot(tarkHANDLE)
-    img = fullImg[y1:y2, x1:x2]
+    # img = fullImg[y1:y2, x1:x2]
+    img = crop(fullImg, x1, y1, x2, y2)
     #####Post processing for accuracy
     # img[np.where((img > [0, 0, 50]).all(axis=2))] = [0, 0, 0] #red
     # img[np.where((img > [40, 0, 0]).all(axis=2))] = [255, 255, 255] #blue
@@ -187,6 +186,7 @@ def found_bot(pos: tuple):
     # cv2.destroyAllWindows()
     # img = cv2.bilateralFilter(img, 5, 50, 50)
     img = cv2.bilateralFilter(img, 9, 75, 75)
+    # img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
     img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
     img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 17, 0)
     img = cv2.bilateralFilter(img, 9, 75, 75)
@@ -227,7 +227,14 @@ def found_bot(pos: tuple):
     before = time()
     result = cv2.matchTemplate(fullImg, match, cv2.TM_CCOEFF_NORMED)  # img -> fullImg
     print(time() - before)
-    yCoords, xCoords = fbh1(result)
+    yCoords = xCoords = []
+    for i in range(500):
+        acc = 0.99-(i*0.0005)
+        print("where over",acc)
+        (yCoords, xCoords) = (yCoords, xCoords) = np.where(result > acc)
+        if len(yCoords) >= 2:
+            print("found @",acc)
+            break
     for (y, x) in zip(yCoords, xCoords):
         print("finna click", x, y)
         click(x, y)
@@ -238,13 +245,13 @@ def found_bot(pos: tuple):
     print("CONFIRM", xConfirm, yConfirm)
     click(xConfirm, yConfirm)
     click(xConfirm, yConfirm)
-    sleep(3)  # slow server😠
+    sleep(1.5)  # slow server😠
     return
 
 
-@njit(parallel=True)
-def fbh1(result):
-    (yCoords, xCoords) = np.where(result > 0.97)
+@njit(fastmath=True, parallel=True)
+def fbh1(result,acc):
+    (yCoords, xCoords) = np.where(result > acc)
     return yCoords, xCoords
 
 
@@ -295,9 +302,15 @@ def search_all(template: np.ndarray, acc=0.95, region=None):
     img = fast_screenshot(tarkHANDLE)
     if region is not None:
         x1, y1, x2, y2 = region
-        img = img[y1:y2, x1:x2]
+        # img = img[y1:y2, x1:x2]
+        img = crop(img, x1, y1, x2, y2)
     result = cv2.matchTemplate(img, template, cv2.TM_CCOEFF_NORMED)  # img -> fullImg
-    yCoords, xCoords = sah1(acc, result)
+    return sah(acc, x1, y1, result)
+
+
+@njit(fastmath=True, parallel=True)
+def sah(acc, x1, y1, result):
+    (yCoords, xCoords) = np.where(result >= acc)
     return [(x + x1, y + y1) for (y, x) in zip(yCoords, xCoords)]
 
 
@@ -305,9 +318,9 @@ def locate_image_ndarray_all(template: np.ndarray, acc=0.97, callback=None, pass
     img = fast_screenshot(tarkHANDLE)
     if region is not None:
         x1, y1, x2, y2 = region
-        img = img[y1:y2, x1:x2]
+        img = crop(img, x1, y1, x2, y2)
     result = cv2.matchTemplate(img, template, cv2.TM_CCOEFF_NORMED)  # img -> fullImg
-    yCoords, xCoords = sah1(acc, result)
+    (yCoords, xCoords) = np.where(result >= acc)
     ret = False
     for (y, x) in zip(yCoords, xCoords):
         if not ret:
@@ -320,12 +333,6 @@ def locate_image_ndarray_all(template: np.ndarray, acc=0.97, callback=None, pass
         else:
             callback()
     return ret
-
-
-@njit(parallel=True)
-def sah1(acc, result):
-    (yCoords, xCoords) = np.where(result >= acc)
-    return yCoords, xCoords
 
 
 def locate_image_ndarray(
@@ -343,7 +350,7 @@ def locate_image_ndarray(
     # print("Image Type:", type(img))
     if region is not None:
         x1, y1, x2, y2 = region
-        img = img[y1:y2, x1:x2]
+        img = crop(img, x1, y1, x2, y2)
     after = time()
     surchTime += after - before
     # print("calling image_search_area", acc)
@@ -359,6 +366,12 @@ def locate_image_ndarray(
                 callback()
         return True
     return False
+
+
+@njit(fastmath=True)
+def crop(img, x1, y1, x2, y2):
+    img = img[y1:y2, x1:x2]
+    return img
 
 
 def plik_work(img, key) -> bool:
@@ -382,7 +395,7 @@ def parallel_locate_image_keys(keys: tuple):
     # np.ndarray
     img = fast_screenshot(tarkHANDLE, gray=True)
 
-    with ThreadPoolExecutor(max_workers=4) as executor:
+    with ThreadPoolExecutor() as executor:
         futures = {executor.submit(plik_work, img, key): key for key in keys}
         # executor.map(plik_work, ((imgView, key) for key in keys))
         # for future in as_completed(futures, 1):
@@ -523,7 +536,7 @@ def sell_items(searchArr) -> int:
     total = 0
     region = (1265, 250, 1920, 1080)
     with ThreadPoolExecutor() as executor:
-        for _ in range(20):
+        for outer in range(20):
             click(240, 45)  # rapist sell button
             locate_images_keys(("bot",))  # check for bot popup because tarkov :)
 
@@ -545,8 +558,8 @@ def sell_items(searchArr) -> int:
             for (x, y) in toClick:
                 numSold += 1
                 click(x, y)
-                click(x, y)
-                click(x, y)
+                # click(x, y)
+                # click(x, y)
             sleep(sleepDur)
             win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
 
@@ -558,10 +571,13 @@ def sell_items(searchArr) -> int:
             print("fuelConSold", numSold)
 
             # sleep(sleepDur)
-            click(1613, 542)  # click / move mouse to where it scrolls
+            loopyBoy = outer%5
+            xW = 1400 + 100*loopyBoy
+            yW = 400 + 100*loopyBoy
+            click(xW, 300)  # click / move mouse to where it scrolls
             # sleep(sleepDur)
             for _ in range(4):
-                win32api.mouse_event(win32con.MOUSEEVENTF_WHEEL, 1613, 542, -1, 0)  # Scroll down
+                win32api.mouse_event(win32con.MOUSEEVENTF_WHEEL, xW, yW, -1, 0)  # Scroll down
                 sleep(sleepDur)
         click(956, 182)  # Deal button
         return total
@@ -580,7 +596,7 @@ countSurch = 0.0
 surchTime = 0.0
 FAILPAUSE = 0  # SECONDS
 OFFERPAUSE = 0.0
-LOOPSLEEPDUR = 0.6
+LOOPSLEEPDUR = 0.5
 startTime = time()
 lastF5 = startTime
 offerTotal = 0
@@ -608,9 +624,9 @@ templateStore = {
 imageDict = {
     "offer": (templateStore["offer"].view(), 0.95, spamClickY, True, None),  # (1700, 145, 1850, 1000)
     "afk": (templateStore["afk"].view(), 0.95, antiAFK2, False, None),  # (710, 450, 800, 480)
-    "fail": (templateStore["fail"].view(), 0.95, clickFail, True, None),  # (925, 500, 1025, 900) but it brokey ??
+    "fail": (templateStore["fail"].view(), 0.90, clickFail, True, None),  # (925, 500, 1025, 900) but it brokey ??
     "flea": (templateStore["flea"].view(), 0.95, None, True, None),
-    "bot": (templateStore["bot"].view(), 0.95, found_bot, True, None),
+    "bot": (templateStore["bot"].view(), 0.90, found_bot, True, None),
     "mainMenu": (templateStore["mainMenu"].view(), 0.95, None, False, (10, 1050, 45, 1075)),
     "rapist": (templateStore["rapist"].view(), 0.95, None, False, (800, 300, 1100, 600)),
     "rapistLoaded": (templateStore["rapistLoaded"].view(), 0.95, None, False, (85, 35, 120, 50)),
